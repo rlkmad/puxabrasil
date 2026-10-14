@@ -97,3 +97,59 @@ test('compara o Node com o engines do candidato', async () => {
   assert.equal(r.engines.ok, false);
   assert.equal(r.versaoConector, '2.5.0');
 });
+
+// ---- Ajuste 0.1: erros de assinatura / usuário inexistente e envio da chave do Euler ----
+const MSG_ASSINATURA = 'Failed to sign request: Failed to sign request: Request failed with status code 403; URL: https://webcast.tiktok.com/webcast/im/fetch/?aid=1988&app_language=en-US';
+const MSG_USUARIO = 'Failed to retrieve room_id from page source. API Error 19881007 (user_not_found)';
+
+test('classificarErro: assinatura (403 do serviço) e usuário inexistente', () => {
+  assert.equal(classificarErro(erro('SignatureError', MSG_ASSINATURA)), 'assinatura');
+  assert.equal(classificarErro(erro('Error', 'Failed to sign request: boom')), 'assinatura');
+  assert.equal(classificarErro(erro('Error', MSG_USUARIO)), 'usuario');
+  // continua distinguindo rede de verdade
+  assert.equal(classificarErro(erro('Error', 'getaddrinfo ENOTFOUND www.tiktok.com')), 'rede');
+});
+
+test('user_not_found = INCONCLUSIVO com mensagem clara (não "erro que não reconheci")', async () => {
+  const r = await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: async () => modulo({ erro: erro('Error', MSG_USUARIO) }, 'antigo') });
+  assert.equal(r.status, STATUS.INCONCLUSIVO);
+  assert.match(r.resumo, /não encontrou o perfil @abc/);
+});
+
+test('403 de assinatura sem chave sugere cadastrar a chave; com chave pede o relatório', async () => {
+  const imp = async () => modulo({ erro: erro('SignatureError', MSG_ASSINATURA) }, 'antigo');
+  const sem = await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: imp });
+  assert.equal(sem.status, STATUS.INCONCLUSIVO);
+  assert.match(sem.resumo, /sem chave/);
+  assert.equal(sem.usouChave, false);
+  const com = await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: imp, chaveEuler: 'euler_SEGREDO12345' });
+  assert.match(com.resumo, /mesmo com a chave/);
+  assert.equal(com.usouChave, true);
+});
+
+test('API antiga recebe a chave em signProviderOptions; API nova em signApiKey; sem chave não passa opções', async () => {
+  const capturas = [];
+  const fabrica = (estilo) => {
+    const Classe = class { constructor(u, opcoes) { capturas.push({ estilo, opcoes }); } on() {} async connect() { return {}; } async disconnect() {} };
+    return estilo === 'novo' ? { TikTokLiveConnection: Classe } : { WebcastPushConnection: Classe };
+  };
+  await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: async () => fabrica('antigo'), chaveEuler: 'euler_ABCDEFGH' });
+  await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: async () => fabrica('novo'), chaveEuler: 'euler_ABCDEFGH' });
+  await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: async () => fabrica('antigo') });
+  assert.deepEqual(capturas[0].opcoes, { signProviderOptions: { headers: { 'x-api-key': 'euler_ABCDEFGH' }, params: { apiKey: 'euler_ABCDEFGH' } } });
+  assert.deepEqual(capturas[1].opcoes, { signApiKey: 'euler_ABCDEFGH' });
+  assert.equal(capturas[2].opcoes, undefined);
+});
+
+test('a chave nunca aparece no resultado, mesmo se vier dentro do erro', async () => {
+  const chave = 'euler_SEGREDO12345';
+  const e = erro('SignatureError', `Failed to sign request: x-api-key: ${chave} recusado ${chave}`);
+  e.response = { status: 403, data: { message: `chave ${chave} inválida` } };
+  e.config = { url: 'https://tiktok.eulerstream.com/webcast/sign_url?apiKey=' + chave };
+  e.stack = `SignatureError: ${chave}\n    at x`;
+  const r = await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, chaveEuler: chave, importador: async () => modulo({ erro: e }, 'antigo') });
+  const texto = JSON.stringify(r);
+  assert.ok(!texto.includes(chave), 'a chave vazou: ' + texto);
+  assert.match(r.erro.detalhes, /HTTP 403/);
+  assert.match(r.erro.detalhes, /tiktok\.eulerstream\.com/);
+});

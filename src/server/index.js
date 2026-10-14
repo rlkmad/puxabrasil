@@ -12,6 +12,7 @@ import { criarBatimento } from './batimento.js';
 import { resolverPastaDados, testarGravacao, recursosDoNode, infoDoNode } from './recursos.js';
 import { avaliarEngines } from './versoes.js';
 import { testarConector, STATUS } from './conector-teste.js';
+import { criarConfiguracao } from './configuracao.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ_NODEJS = path.resolve(AQUI, '..', '..');
@@ -61,6 +62,7 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
 
   const conectores = lerCandidatos();
   const escrita = testarGravacao(dados.caminho);
+  const config = criarConfiguracao(dados.caminho);
   const resultadosConector = {}; // por candidato
   let testando = false;
 
@@ -117,6 +119,7 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
       pastaDados: { ...dados, ...escrita },
       uptimeS: Math.round(process.uptime()),
       memoriaMB: { rss: Math.round(mem.rss / 1048576), heapUsado: Math.round(mem.heapUsed / 1048576) },
+      euler: config.resumoEuler(),
       conectores: { origem: conectores.origem, geradoEm: conectores.geradoEm, candidatos, nativos: conectores.nativos },
       batimento: batimento.estado(),
       websocket: { clientes: wss.clients.size },
@@ -126,6 +129,18 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
     };
   }
   app.get('/api/diagnostico', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json(montarDiagnostico()); });
+
+  // Chave opcional do Euler Stream. A chave inteira nunca sai do aparelho nem volta para a tela: só o final.
+  app.get('/api/config/euler', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json(config.resumoEuler()); });
+  app.post('/api/config/euler', (req, res) => {
+    try {
+      config.salvarChaveEuler(req.body?.chave ?? '');
+      info(config.resumoEuler().configurada ? 'Chave do Euler salva.' : 'Chave do Euler removida.');
+      res.json(config.resumoEuler());
+    } catch (e) {
+      res.status(400).json({ erro: e?.code === 'CHAVE_INVALIDA' ? e.message : 'Não consegui salvar a chave: ' + (e?.message || e) });
+    }
+  });
 
   app.post('/api/zerar-medicao', (_req, res) => { batimento.zerarMedicao(); res.json({ ok: true }); });
 
@@ -143,8 +158,8 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
     try {
       const resultados = [];
       for (const c of pedidos) {
-        info(`Testando conector ${c.nome} (${c.versao}) com @${bruto}`);
-        const r = await testarConector({ candidato: c.nome, usuario: bruto, infoCandidato: c });
+        info(`Testando conector ${c.nome} (${c.versao}) com @${bruto}${config.chaveEuler() ? ' (com chave do Euler)' : ''}`);
+        const r = await testarConector({ candidato: c.nome, usuario: bruto, infoCandidato: c, chaveEuler: config.chaveEuler() });
         resultadosConector[c.nome] = r;
         info(`Resultado ${c.nome}: ${r.status} — ${r.resumo}`);
         resultados.push(r);

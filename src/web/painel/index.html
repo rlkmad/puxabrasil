@@ -35,7 +35,7 @@
   .selo { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: .85rem; border: 2px solid currentColor; }
   .ok { color: var(--verde); } .alerta { color: var(--amarelo); } .ruim { color: var(--vermelho); } .info { color: var(--azul); }
   input, button, select { font: inherit; }
-  input[type=text] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--borda); background: #0a1630; color: var(--texto); }
+  input[type=text], input[type=password] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--borda); background: #0a1630; color: var(--texto); }
   .linha { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   button { min-height: 48px; padding: 0 16px; border-radius: 10px; border: 2px solid var(--amarelo); background: transparent; color: var(--amarelo); font-weight: 700; }
   button.cheio { background: var(--amarelo); color: #1b2a00; }
@@ -79,6 +79,19 @@
   <div id="resultado-teste" aria-live="polite"></div>
 </section>
 
+<section id="s-euler">
+  <h2>Chave do serviço de assinatura (opcional)</h2>
+  <p class="pequeno">O TikTok exige que o pedido de conexão seja assinado por um serviço de terceiros (Euler Stream). Sem chave, o limite gratuito é compartilhado por IP e pode dar erro 403. Uma chave grátis da sua conta em eulerstream.com tem cota própria. A chave fica só neste aparelho e nunca aparece no relatório (só o final).</p>
+  <dl><dt>Chave salva</dt><dd id="euler-estado">—</dd></dl>
+  <label for="chave-euler">Colar a chave</label>
+  <input id="chave-euler" type="password" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="euler_…">
+  <div class="linha">
+    <button class="cheio" id="btn-salvar-chave" type="button">Salvar chave</button>
+    <button id="btn-remover-chave" type="button">Remover chave</button>
+  </div>
+  <p class="pequeno" id="euler-aviso" aria-live="polite"></p>
+</section>
+
 <section id="s-aparelho">
   <h2>Aparelho</h2>
   <dl id="dl-aparelho"></dl>
@@ -115,6 +128,7 @@ const NATIVO = window.PuxaNativo || null;
 let ultimoDiag = null;
 let ultimoTeste = null;
 let infoNativa = null;
+let ultimoEuler = null;
 
 function selo(texto, classe) {
   const s = document.createElement('span');
@@ -221,6 +235,7 @@ async function atualizar() {
     ultimoDiag = await r.json();
     infoNativa = lerInfoNativa();
     renderDiag(ultimoDiag);
+    mostrarEuler(ultimoDiag.euler);
     renderAparelho();
   } catch (e) { /* tenta de novo no próximo ciclo */ }
 }
@@ -257,7 +272,7 @@ async function testar(candidato) {
       titulo.append(`${t.candidato} ${t.versaoConector ? '(' + t.versaoConector + ') ' : ''}`, selo(t.status.toUpperCase(), t.status === 'aprovado' ? 'ok' : t.status === 'reprovado' ? 'ruim' : 'alerta'));
       const resumo = document.createElement('p'); resumo.textContent = t.resumo;
       bloco.append(titulo, resumo);
-      if (t.erro) { const pre = document.createElement('pre'); pre.textContent = `${t.erro.nome || 'Erro'} ${t.erro.codigo || ''}\n${t.erro.mensagem}\n${t.erro.pilha}`; bloco.append(pre); }
+      if (t.erro) { const pre = document.createElement('pre'); pre.textContent = `${t.erro.nome || 'Erro'} ${t.erro.codigo || ''}\n${t.erro.mensagem}${t.erro.detalhes ? '\nDetalhes: ' + t.erro.detalhes : ''}\n${t.erro.pilha}`; bloco.append(pre); }
       area.append(bloco);
     }
     atualizar();
@@ -270,6 +285,27 @@ async function testar(candidato) {
 $('btn-todos').onclick = () => testar('todos');
 $('btn-novo').onclick = () => testar('conector-novo');
 $('btn-antigo').onclick = () => testar('conector-antigo');
+function mostrarEuler(e) {
+  ultimoEuler = e;
+  $('euler-estado').replaceChildren(e && e.configurada ? selo(`SIM · termina em ${e.final} (${e.origem})`, 'ok') : selo('NÃO', 'alerta'));
+}
+async function salvarChave(valor) {
+  const aviso = $('euler-aviso'); aviso.textContent = '';
+  try {
+    const r = await fetch('/api/config/euler', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chave: valor }) });
+    const dados = await r.json();
+    if (!r.ok) { aviso.textContent = dados.erro || 'Não consegui salvar.'; return; }
+    $('chave-euler').value = '';
+    mostrarEuler(dados);
+    aviso.textContent = dados.configurada ? 'Chave salva. Agora toque em "Só o antigo" para testar.' : 'Chave removida.';
+  } catch (e) { aviso.textContent = 'Não consegui falar com o servidor do app: ' + e; }
+}
+$('btn-salvar-chave').onclick = () => {
+  const v = $('chave-euler').value.trim();
+  if (!v) { $('euler-aviso').textContent = 'Cole a chave primeiro.'; return; }
+  salvarChave(v);
+};
+$('btn-remover-chave').onclick = () => salvarChave('');
 $('btn-zerar').onclick = async () => { await fetch('/api/zerar-medicao', { method: 'POST' }); atualizar(); };
 $('btn-bateria').onclick = () => { try { NATIVO.abrirAjusteBateria(); } catch (e) { alert('Não foi possível abrir o ajuste: ' + e); } };
 
@@ -283,14 +319,16 @@ function montarRelatorio() {
   L.push(`Serviço em primeiro plano: ${n.servico || '?'} · Notificações: ${n.notificacoes} · Fora da otimização de bateria: ${n.ignorandoBateria}`);
   L.push(`Node embutido: ${d.node.versao} (${d.node.plataforma}/${d.node.arquitetura}) · V8 ${d.node.v8} · porta ${d.porta} · ligado há ${d.uptimeS}s · RSS ${d.memoriaMB.rss} MB`);
   L.push(`Pasta de dados: ${d.pastaDados.caminho} · gravável: ${d.pastaDados.gravavel}${d.pastaDados.erro ? ' (' + d.pastaDados.erro + ')' : ''} · bridge: ${d.ponteDisponivel}`);
+  const eu = ultimoEuler || d.euler;
+  L.push(`Chave do Euler: ${eu && eu.configurada ? 'configurada (termina em ' + eu.final + ', origem ' + eu.origem + ')' : 'não configurada'}`);
   L.push('Recursos: ' + Object.entries(d.recursos).map(([k, v]) => `${k}=${v ? 'sim' : 'FALTA'}`).join(', '));
   L.push('');
   for (const c of d.conectores.candidatos) {
     L.push(`Conector ${c.nome}: versão ${c.versao} · exige Node ${c.enginesNode || 'não declara'} · ${c.engines.texto}`);
     const t = (ultimoTeste || []).find((x) => x.candidato === c.nome) || c.ultimoTeste;
     if (t) {
-      L.push(`  Teste (@${t.usuario}): ${t.status.toUpperCase()} na etapa "${t.etapa}" — ${t.resumo} [${t.tempoMs} ms] API: ${t.api || '—'}`);
-      if (t.erro) L.push(`  Erro: ${t.erro.nome} ${t.erro.codigo || ''} ${t.erro.mensagem}`, '  ' + t.erro.pilha.split('\n').join('\n  '));
+      L.push(`  Teste (@${t.usuario}): ${t.status.toUpperCase()} na etapa "${t.etapa}" — ${t.resumo} [${t.tempoMs} ms] API: ${t.api || '—'} · com chave: ${t.usouChave ? 'sim' : 'não'}`);
+      if (t.erro) L.push(`  Erro: ${t.erro.nome} ${t.erro.codigo || ''} ${t.erro.mensagem}`, ...(t.erro.detalhes ? ['  Detalhes: ' + t.erro.detalhes] : []), '  ' + t.erro.pilha.split('\n').join('\n  '));
     } else L.push('  Teste: ainda não executado');
   }
   if (d.conectores.nativos.length) L.push('Módulos nativos nas dependências: ' + d.conectores.nativos.map((x) => x.pacote + (x.motivos ? ' [' + x.motivos.join('; ') + ']' : '')).join(', '));

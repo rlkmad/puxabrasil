@@ -67,6 +67,15 @@ Ao abrir, o app mostra uma tela de abertura e, em alguns segundos, o **Diagnóst
 
 ---
 
+### 2.1 Se o teste do conector der erro 403 de assinatura (ajuste 0.1)
+
+O TikTok exige que o pedido de conexão seja assinado por um serviço de terceiros (Euler Stream). Sem chave, o limite gratuito é por IP e pode dar erro 403.
+
+1. Crie uma conta gratuita em eulerstream.com e gere uma chave de API.
+2. No app, role até **Chave do serviço de assinatura**, cole a chave e toque em **Salvar chave**. Ela fica só no aparelho e nunca entra no relatório (só os 4 últimos caracteres).
+3. Toque em **Só o antigo** e teste com o @ de uma live que esteja no ar.
+4. Nunca cole a chave em conversas, no GitHub nem em arquivos do projeto. Se ela vazar, gere outra no site e remova a antiga.
+
 ## 3. Erros comuns
 
 | O que aparece | O que fazer |

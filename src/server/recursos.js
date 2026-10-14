@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { POLYFILLS_APLICADOS } from './polifills.js';
 
 /** Pasta de dados privada: a do app (via bridge), uma variável de ambiente, ou uma pasta temporária (desenvolvimento). */
 export function resolverPastaDados() {
@@ -39,7 +40,7 @@ export function recursosDoNode() {
     structuredClone: typeof structuredClone === 'function',
     ReadableStream: typeof ReadableStream !== 'undefined',
     TextDecoderStream: typeof TextDecoderStream !== 'undefined',
-    'crypto.randomUUID': typeof globalThis.crypto?.randomUUID === 'function',
+    [POLYFILLS_APLICADOS.includes('crypto') ? 'crypto.randomUUID (via polyfill)' : 'crypto.randomUUID']: typeof globalThis.crypto?.randomUUID === 'function',
     'import() dinâmico': true,
     'node:test (só testes)': undefined,
   };

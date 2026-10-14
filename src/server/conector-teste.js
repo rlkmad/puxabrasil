@@ -14,7 +14,7 @@ const CODIGOS_INCOMPATIVEIS = new Set([
 ]);
 const NOMES_INCOMPATIVEIS = new Set(['SyntaxError', 'ReferenceError']);
 
-/** Classifica um erro em: incompativel | offline | rede | limite | desconhecido. */
+/** Classifica um erro em: incompativel | offline | usuario | assinatura | rede | limite | desconhecido. */
 export function classificarErro(err, { etapa = 'conectar' } = {}) {
   const nome = err?.name || '';
   const codigo = err?.code || '';
@@ -25,6 +25,10 @@ export function classificarErro(err, { etapa = 'conectar' } = {}) {
   // porque a mensagem pode conter a palavra "timeout".
   if (nome === 'TypeError' && /is not a function|is not a constructor|cannot read propert|is not defined|not supported/i.test(msg)) return 'incompativel';
   if (nome === 'UserOfflineError' || /isn.?t (online|live)|not (currently )?(online|live)|user.*offline|offline|live has ended|not live/i.test(msg)) return 'offline';
+  // O TikTok respondeu, mas não achou o @ (digitado errado ou conta inexistente).
+  if (/user_not_found|19881007|user not found/i.test(msg)) return 'usuario';
+  // Falha na assinatura (serviço de terceiros): vem antes de "rede", porque a mensagem cita "request failed".
+  if (nome === 'SignatureError' || /failed to sign|sign(ing)? (request|server|api)|eulerstream|euler stream/i.test(msg)) return 'assinatura';
   if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|EHOSTUNREACH|timed? ?out|timeout|network|fetch failed|socket hang up|getaddrinfo/i.test(`${codigo} ${msg}`)) return 'rede';
   if (/rate.?limit|too many requests|429|api key|signature|sign (server|api)|unauthorized|forbidden|\b40[13]\b/i.test(msg)) return 'limite';
   // TypeError logo no carregamento/construção indica recurso inexistente no Node embutido.
@@ -32,14 +36,42 @@ export function classificarErro(err, { etapa = 'conectar' } = {}) {
   return 'desconhecido';
 }
 
-function descreverErro(err) {
+const CHAVE_NO_TEXTO = /(x-api-key|api[_-]?key|authorization)["']?\s*[:=]\s*["']?[^\s"',&]+/gi;
+
+/** Tira chaves de qualquer texto que vá para a tela, o log ou o relatório. */
+function ocultar(texto, segredos = []) {
+  let t = String(texto ?? '');
+  for (const seg of segredos) if (seg) t = t.split(seg).join('[chave oculta]');
+  return t.replace(CHAVE_NO_TEXTO, '$1: [oculto]');
+}
+
+function descreverErro(err, segredos = []) {
   if (!err) return null;
   return {
     nome: err.name || null,
     codigo: err.code || null,
-    mensagem: String(err.message || err),
-    pilha: String(err.stack || '').split('\n').slice(0, 6).join('\n'),
+    mensagem: ocultar(err.message || err, segredos),
+    pilha: ocultar(String(err.stack || '').split('\n').slice(0, 6).join('\n'), segredos),
+    detalhes: ocultar(detalhesDaResposta(err), segredos) || null,
   };
+}
+
+/** Texto de apoio: status e corpo da resposta HTTP (se o erro trouxer), sem nunca incluir chaves. */
+function detalhesDaResposta(err) {
+  const alvos = [err, err?.cause, err?.exception, err?.info].filter(Boolean);
+  const partes = [];
+  for (const e of alvos) {
+    const r = e.response;
+    if (r) {
+      let corpo = r.data;
+      try { if (corpo && typeof corpo !== 'string') corpo = JSON.stringify(corpo); } catch (_) { corpo = null; }
+      partes.push(`HTTP ${r.status ?? '?'}${corpo ? ' ' + String(corpo).slice(0, 300) : ''}`);
+    }
+    const host = (() => { try { return e.config?.url ? new URL(e.config.url).host : null; } catch (_) { return null; } })();
+    if (host) partes.push(`servidor ${host}`);
+  }
+  const texto = partes.join(' · ').replace(CHAVE_NO_TEXTO, '$1: [oculto]');
+  return texto || null;
 }
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -69,6 +101,7 @@ export async function testarConector({
   importador = (nome) => import(nome),
   timeoutConectarMs = 25000,
   esperaEventoMs = 8000,
+  chaveEuler = null,           // chave opcional do Euler Stream (nunca aparece no resultado)
 } = {}) {
   const inicio = Date.now();
   const resultado = {
@@ -83,12 +116,13 @@ export async function testarConector({
     resumo: '',
     erro: null,
     evento: null,
+    usouChave: Boolean(chaveEuler),
     tempoMs: 0,
   };
   const fechar = (status, resumo, erro) => {
     resultado.status = status;
     resultado.resumo = resumo;
-    resultado.erro = descreverErro(erro);
+    resultado.erro = descreverErro(erro, [chaveEuler]);
     resultado.tempoMs = Date.now() - inicio;
     return resultado;
   };
@@ -119,7 +153,11 @@ export async function testarConector({
   resultado.etapa = 'criar';
   let conexao;
   try {
-    conexao = new Classe(usuario);
+    // A chave vai só para o serviço de assinatura. API nova: signApiKey. API antiga (1.x): cabeçalho e parâmetro.
+    const opcoes = !chaveEuler ? null
+      : Nova ? { signApiKey: chaveEuler }
+        : { signProviderOptions: { headers: { 'x-api-key': chaveEuler }, params: { apiKey: chaveEuler } } };
+    conexao = opcoes ? new Classe(usuario, opcoes) : new Classe(usuario);
   } catch (e) {
     const tipo = classificarErro(e, { etapa: 'criar' });
     return fechar(tipo === 'rede' ? STATUS.INCONCLUSIVO : STATUS.REPROVADO, 'Não consegui criar a conexão.', e);
@@ -150,6 +188,18 @@ export async function testarConector({
     }
     if (tipo === 'rede') {
       return fechar(STATUS.INCONCLUSIVO, 'Sem resposta da internet ou do serviço de assinatura. Confira o sinal e tente de novo.', e);
+    }
+    if (tipo === 'usuario') {
+      return fechar(STATUS.INCONCLUSIVO, `O TikTok não encontrou o perfil @${usuario}. Confira a grafia (sem o @) ou teste outro perfil que exista.`, e);
+    }
+    if (tipo === 'assinatura') {
+      return fechar(
+        STATUS.INCONCLUSIVO,
+        chaveEuler
+          ? 'O serviço de assinatura (Euler Stream) recusou o pedido mesmo com a chave. Pode ser chave inválida ou sem permissão, ou o formato de envio da chave. Copie o relatório.'
+          : 'O serviço de assinatura (Euler Stream) recusou o pedido sem chave (limite gratuito por IP ou bloqueio). Cadastre uma chave grátis na seção abaixo ou tente em outra rede.',
+        e,
+      );
     }
     if (tipo === 'limite') {
       return fechar(STATUS.INCONCLUSIVO, 'O serviço de assinatura recusou ou limitou o pedido. Espere alguns minutos e tente de novo.', e);

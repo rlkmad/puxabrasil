@@ -1,0 +1,20 @@
+// Assinatura fixa (uso pessoal, fora da Play Store). Aplicada pelo scripts/preparar-android.js.
+// Sem chave fixa, cada build do GitHub teria uma chave nova e o Android recusaria instalar por cima.
+android {
+    signingConfigs {
+        puxa {
+            storeFile = file('puxa-brasil.keystore')
+            storePassword = 'puxabrasil'
+            keyAlias = 'puxabrasil'
+            keyPassword = 'puxabrasil'
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.puxa
+        }
+        debug {
+            signingConfig = signingConfigs.puxa
+        }
+    }
+}

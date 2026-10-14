@@ -1,0 +1,12 @@
+{
+  "name": "puxa-brasil-nodejs",
+  "version": "0.0.1",
+  "private": true,
+  "main": "main.js",
+  "dependencies": {
+    "conector-antigo": "npm:tiktok-live-connector@1.2.3",
+    "conector-novo": "npm:tiktok-live-connector@^2.0.0",
+    "express": "^4.21.2",
+    "ws": "^8.18.2"
+  }
+}

@@ -1,0 +1,99 @@
+name: Gerar APK
+
+# Roda sozinho a cada envio na ramificação principal e também à mão (aba Actions > Gerar APK > Run workflow).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: gerar-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Testes (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        node: [18, 22]   # 18 = o Node embutido no app; 22 = o do build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Instalar só express e ws para o teste do servidor
+        run: |
+          npm install --prefix .deps-teste --no-audit --no-fund --ignore-scripts express@^4.21.2 ws@^8.18.2
+          ln -s .deps-teste/node_modules node_modules
+      - name: Rodar os testes
+        run: npm test
+
+  apk:
+    name: Montar o APK
+    needs: testes          # se algum teste falhar, o APK não é gerado
+    runs-on: ubuntu-latest
+    env:
+      CAPACITOR_NODEJS_SKIP_DOWNLOAD: "1"   # binários do iOS não são necessários
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22        # o Capacitor 8 exige Node 22 ou mais novo
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21        # o Capacitor 8 compila com Java 21
+
+      - name: Instalar dependências do projeto
+        run: npm install --no-audit --no-fund
+
+      - name: Preparar a pasta www (página de abertura + Node embutido)
+        run: node scripts/preparar-build.js
+
+      - name: Criar o projeto Android
+        run: npx cap add android
+
+      - name: Ajustar o projeto Android (serviço, ponte, rede, assinatura fixa)
+        run: node scripts/preparar-android.js
+
+      - name: Sincronizar
+        run: npx cap sync android
+
+      - name: Conferir que o Node embutido entrou no projeto
+        run: |
+          D=android/app/src/main/assets/public/nodejs
+          test -f $D/main.js
+          test -f $D/build-info.json
+          test -d $D/node_modules
+          echo "Conteúdo de $D:"; ls $D
+
+      - name: Montar o APK (assinado com a chave fixa)
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Nomear o APK e listar tamanho e arquiteturas
+        run: |
+          mkdir -p saida
+          cp android/app/build/outputs/apk/release/app-release.apk saida/puxa-brasil.apk
+          cp www/nodejs/build-info.json saida/build-info.json
+          cp nodejs-package-lock.gerado.json saida/ 2>/dev/null || true
+          ls -l saida
+          echo "Arquiteturas dentro do APK:"
+          unzip -l saida/puxa-brasil.apk | awk '{print $4}' | grep -E '^lib/[^/]+/' | cut -d/ -f2 | sort | uniq -c
+          keytool -printcert -jarfile saida/puxa-brasil.apk 2>/dev/null | grep -i sha256 || echo "(impressão digital: confira no celular)"
+
+      - name: Guardar o APK para baixar
+        uses: actions/upload-artifact@v4
+        with:
+          name: puxa-brasil-apk
+          path: |
+            saida/puxa-brasil.apk
+            saida/build-info.json
+            saida/nodejs-package-lock.gerado.json
+          if-no-files-found: error

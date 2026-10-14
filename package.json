@@ -1,0 +1,23 @@
+{
+  "name": "puxa-brasil",
+  "version": "0.0.1",
+  "description": "Puxa Brasil: jogo interativo para live do TikTok, em app Android (Fase 0: esqueleto e teste do Node embutido)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "dev": "node src/server/iniciar.js",
+    "preparar": "node scripts/preparar-build.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capawesome/capacitor-nodejs": ">=0.0.1 <0.1.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "express": "^4.21.2",
+    "ws": "^8.18.2"
+  }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Puxa Brasil</title>
+<style>
+  html, body { margin: 0; min-height: 100%; background: #0B1B3A; color: #f4f7ff; font: 16px/1.5 system-ui, sans-serif; }
+  main { padding: max(20px, env(safe-area-inset-top)) 20px 28px; max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 24px 0 6px; }
+  .barra { height: 8px; border-radius: 4px; background: #12264d; overflow: hidden; margin: 14px 0; }
+  .barra i { display: block; height: 100%; width: 30%; background: #ffdf00; animation: corre 1.4s ease-in-out infinite; }
+  @keyframes corre { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+  @media (prefers-reduced-motion: reduce) { .barra i { animation: none; width: 60%; } }
+  .erro { border: 2px solid #ff6b6b; border-radius: 10px; padding: 12px; margin-top: 16px; }
+  .erro[hidden] { display: none; }
+  button { min-height: 48px; padding: 0 16px; border-radius: 10px; border: 2px solid #ffdf00; background: transparent; color: #ffdf00; font: inherit; font-weight: 700; margin-top: 10px; }
+  small { color: #aebbd6; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Puxa Brasil</h1>
+  <p id="estado">Iniciando o servidor do app…</p>
+  <div class="barra" aria-hidden="true"><i></i></div>
+  <small id="detalhe"></small>
+  <div class="erro" id="erro" hidden>
+    <strong>O servidor do app não respondeu.</strong>
+    <p>Feche o app e abra de novo. Se continuar assim, o Node embutido pode não ter iniciado neste aparelho.</p>
+    <button id="tentar" type="button">Tentar de novo</button>
+  </div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var PORTAS = [];
+  for (var p = 3000; p <= 3010; p++) PORTAS.push(p);
+  var inicio = Date.now();
+  var LIMITE_MS = 45000;
+  var achou = false;
+
+  function plugin() {
+    try { return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Nodejs; } catch (e) { return null; }
+  }
+  function detalhe(t) { document.getElementById('detalhe').textContent = t; }
+
+  function testar(porta) {
+    var ctl = new AbortController();
+    var t = setTimeout(function () { ctl.abort(); }, 900);
+    return fetch('http://127.0.0.1:' + porta + '/api/ping', { cache: 'no-store', signal: ctl.signal })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { clearTimeout(t); return j && j.app === 'puxa-brasil' ? porta : null; })
+      .catch(function () { clearTimeout(t); return null; });
+  }
+
+  function ciclo() {
+    if (achou) return;
+    var pl = plugin();
+    if (pl && pl.isReady) { pl.isReady().then(function (r) { detalhe('Plugin do Node: ' + (r && r.ready ? 'pronto' : 'iniciando')); }).catch(function () {}); }
+    else detalhe('Plugin do Node: ainda não apareceu');
+
+    Promise.all(PORTAS.map(testar)).then(function (res) {
+      var porta = res.filter(Boolean)[0];
+      if (porta) {
+        achou = true;
+        document.getElementById('estado').textContent = 'Servidor encontrado na porta ' + porta + '. Abrindo…';
+        location.replace('http://127.0.0.1:' + porta + '/painel');
+      } else if (Date.now() - inicio > LIMITE_MS) {
+        document.getElementById('erro').hidden = false;
+      } else {
+        setTimeout(ciclo, 700);
+      }
+    });
+  }
+  document.getElementById('tentar').onclick = function () { location.reload(); };
+  ciclo();
+})();
+</script>
+</body>
+</html>

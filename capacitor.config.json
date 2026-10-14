@@ -1,0 +1,18 @@
+{
+  "appId": "br.puxabrasil.app",
+  "appName": "Puxa Brasil",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "allowNavigation": ["127.0.0.1", "localhost"]
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "Nodejs": {
+      "nodeDir": "nodejs",
+      "startMode": "auto"
+    }
+  }
+}

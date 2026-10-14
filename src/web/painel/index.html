@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Puxa Brasil · Diagnóstico</title>
+<style>
+  :root {
+    --fundo: #0B1B3A;
+    --painel: #12264d;
+    --borda: #2a4272;
+    --texto: #f4f7ff;
+    --suave: #aebbd6;
+    --verde: #2fd07a;
+    --amarelo: #ffdf00;
+    --vermelho: #ff6b6b;
+    --azul: #6db3ff;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--fundo); color: var(--texto);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom));
+    max-width: 760px; margin-inline: auto;
+  }
+  h1 { font-size: 1.3rem; margin: 4px 0 2px; }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  .sub { color: var(--suave); margin: 0 0 14px; font-size: .92rem; }
+  section { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; margin: 0 0 12px; }
+  dl { margin: 0; display: grid; grid-template-columns: minmax(110px, 38%) 1fr; gap: 6px 10px; }
+  dt { color: var(--suave); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .selo { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: .85rem; border: 2px solid currentColor; }
+  .ok { color: var(--verde); } .alerta { color: var(--amarelo); } .ruim { color: var(--vermelho); } .info { color: var(--azul); }
+  input, button, select { font: inherit; }
+  input[type=text] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--borda); background: #0a1630; color: var(--texto); }
+  .linha { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button { min-height: 48px; padding: 0 16px; border-radius: 10px; border: 2px solid var(--amarelo); background: transparent; color: var(--amarelo); font-weight: 700; }
+  button.cheio { background: var(--amarelo); color: #1b2a00; }
+  button:disabled { opacity: .5; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+  pre { background: #0a1630; border: 1px solid var(--borda); border-radius: 8px; padding: 10px; overflow-x: auto; font-size: .8rem; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cand { border-top: 1px solid var(--borda); padding-top: 10px; margin-top: 10px; }
+  .cand:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+  ul { margin: 6px 0 0; padding-left: 20px; }
+  .pequeno { font-size: .88rem; color: var(--suave); }
+</style>
+</head>
+<body>
+<h1>Puxa Brasil · Diagnóstico</h1>
+<p class="sub">Fase 0: confirmar que o Node embutido, o conector do TikTok e o serviço em primeiro plano funcionam neste aparelho.</p>
+
+<section id="s-conexao">
+  <h2>Servidor do app</h2>
+  <dl>
+    <dt>Conexão ao vivo</dt><dd id="ws-estado"><span class="selo alerta">conectando…</span></dd>
+    <dt>Batidas recebidas</dt><dd id="ws-batidas">0</dd>
+  </dl>
+</section>
+
+<section id="s-conectores">
+  <h2>Conector do TikTok × Node embutido</h2>
+  <p class="pequeno">O conector precisa de uma versão mínima do Node. Aqui está a comparação com o Node que roda dentro do app.</p>
+  <div id="lista-candidatos"></div>
+</section>
+
+<section id="s-teste">
+  <h2>Testar conector</h2>
+  <label for="usuario">@ de qualquer perfil (sem o @)</label>
+  <input id="usuario" type="text" inputmode="text" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="ex.: nomedoperfil">
+  <div class="linha">
+    <button class="cheio" id="btn-todos" type="button">Testar todos</button>
+    <button id="btn-novo" type="button">Só o novo</button>
+    <button id="btn-antigo" type="button">Só o antigo</button>
+  </div>
+  <p class="pequeno">Dica: se o perfil não estiver ao vivo, "usuário offline" também vale como aprovado. O teste pode levar até 30 s por conector.</p>
+  <div id="resultado-teste" aria-live="polite"></div>
+</section>
+
+<section id="s-aparelho">
+  <h2>Aparelho</h2>
+  <dl id="dl-aparelho"></dl>
+  <div class="linha"><button id="btn-bateria" type="button" hidden>Abrir ajuste de bateria</button></div>
+</section>
+
+<section id="s-node">
+  <h2>Node embutido</h2>
+  <dl id="dl-node"></dl>
+  <p class="pequeno" style="margin-top:10px">Recursos que o servidor usa:</p>
+  <ul id="lista-recursos"></ul>
+</section>
+
+<section id="s-fundo">
+  <h2>Segundo plano</h2>
+  <p class="pequeno">Toque em "Zerar medição", mande o app para segundo plano por 10 minutos, volte e veja se houve pausas do servidor.</p>
+  <dl id="dl-fundo"></dl>
+  <ul id="lista-pausas"></ul>
+  <div class="linha"><button id="btn-zerar" type="button">Zerar medição</button></div>
+</section>
+
+<section id="s-relatorio">
+  <h2>Relatório para enviar</h2>
+  <div class="linha">
+    <button class="cheio" id="btn-copiar" type="button">Copiar relatório</button>
+  </div>
+  <pre id="texto-relatorio" hidden></pre>
+</section>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const NATIVO = window.PuxaNativo || null;
+let ultimoDiag = null;
+let ultimoTeste = null;
+let infoNativa = null;
+
+function selo(texto, classe) {
+  const s = document.createElement('span');
+  s.className = 'selo ' + classe;
+  s.textContent = texto;
+  return s;
+}
+function linhaDl(dl, rotulo, valor) {
+  const dt = document.createElement('dt'); dt.textContent = rotulo;
+  const dd = document.createElement('dd');
+  if (valor instanceof Node) dd.appendChild(valor); else dd.textContent = valor ?? '—';
+  dl.append(dt, dd);
+}
+function simNao(v, textoSim, textoNao, classeNao = 'ruim') {
+  return selo(v ? textoSim : textoNao, v ? 'ok' : classeNao);
+}
+
+function lerInfoNativa() {
+  if (!NATIVO) return null;
+  try { return JSON.parse(NATIVO.info()); } catch (e) { return { erro: String(e) }; }
+}
+
+function renderAparelho() {
+  const dl = $('dl-aparelho'); dl.replaceChildren();
+  const ua = navigator.userAgent;
+  const chrome = /Chrome\/([\d.]+)/.exec(ua);
+  const android = /Android ([\d.]+)/.exec(ua);
+  const n = infoNativa;
+  linhaDl(dl, 'Modelo', n && n.modelo ? `${n.fabricante} ${n.modelo}` : '(fora do app)');
+  linhaDl(dl, 'Android', n && n.android ? `${n.android} (API ${n.sdk})` : android ? android[1] : '—');
+  linhaDl(dl, 'WebView', n && n.webview ? n.webview : chrome ? 'Chrome ' + chrome[1] : '—');
+  if (n && !n.erro) {
+    linhaDl(dl, 'Serviço em primeiro plano', simNao(n.servico === 'ativo', 'ATIVO', 'PARADO'));
+    linhaDl(dl, 'Notificações permitidas', simNao(n.notificacoes, 'SIM', 'NÃO', 'alerta'));
+    linhaDl(dl, 'Fora da otimização de bateria', simNao(n.ignorandoBateria, 'SIM', 'NÃO', 'alerta'));
+    $('btn-bateria').hidden = false;
+  } else {
+    linhaDl(dl, 'Serviço em primeiro plano', '(só aparece dentro do app)');
+  }
+}
+
+function renderDiag(d) {
+  // Conectores
+  const lista = $('lista-candidatos'); lista.replaceChildren();
+  if (!d.conectores.candidatos.length) {
+    const p = document.createElement('p'); p.textContent = 'Nenhum conector instalado nesta compilação.'; lista.append(p);
+  }
+  for (const c of d.conectores.candidatos) {
+    const bloco = document.createElement('div'); bloco.className = 'cand';
+    const dl = document.createElement('dl');
+    linhaDl(dl, 'Candidato', c.nome === 'conector-novo' ? 'conector-novo (versão mais nova)' : c.nome === 'conector-antigo' ? 'conector-antigo (linha 1.x)' : c.nome);
+    linhaDl(dl, 'Versão', c.versao ?? '—');
+    linhaDl(dl, 'Exige Node', c.enginesNode ?? 'não declara');
+    const ok = c.engines.ok;
+    linhaDl(dl, 'Node do app', selo(`${d.node.versao} · ${ok === true ? 'ATENDE' : ok === false ? 'NÃO ATENDE' : 'sem comparação'}`, ok === true ? 'ok' : ok === false ? 'ruim' : 'alerta'));
+    if (c.ultimoTeste) {
+      const t = c.ultimoTeste;
+      linhaDl(dl, 'Último teste', selo(t.status.toUpperCase(), t.status === 'aprovado' ? 'ok' : t.status === 'reprovado' ? 'ruim' : 'alerta'));
+    }
+    bloco.append(dl); lista.append(bloco);
+  }
+  if (d.conectores.nativos.length) {
+    const p = document.createElement('p'); p.className = 'pequeno';
+    p.textContent = 'Módulos nativos encontrados nas dependências: ' + d.conectores.nativos.map((n) => n.pacote).join(', ') + '. (Podem não funcionar no Android; o conector tem plano B se for o caso.)';
+    lista.append(p);
+  }
+
+  // Node
+  const dn = $('dl-node'); dn.replaceChildren();
+  linhaDl(dn, 'Versão do Node', d.node.versao);
+  linhaDl(dn, 'V8', d.node.v8);
+  linhaDl(dn, 'Plataforma', `${d.node.plataforma} / ${d.node.arquitetura}`);
+  linhaDl(dn, 'Porta do servidor', String(d.porta));
+  linhaDl(dn, 'Ligado há', formatarTempo(d.uptimeS));
+  linhaDl(dn, 'Memória (RSS)', d.memoriaMB.rss + ' MB');
+  linhaDl(dn, 'Pasta de dados', d.pastaDados.caminho);
+  linhaDl(dn, 'Pasta gravável', simNao(d.pastaDados.gravavel, 'SIM', 'NÃO: ' + (d.pastaDados.erro || '')));
+  linhaDl(dn, 'Módulo bridge', simNao(d.ponteDisponivel, 'PRESENTE', 'AUSENTE', 'alerta'));
+  const lr = $('lista-recursos'); lr.replaceChildren();
+  for (const [nome, ok] of Object.entries(d.recursos)) {
+    const li = document.createElement('li'); li.append(nome + ': ', selo(ok ? 'SIM' : 'FALTA', ok ? 'ok' : 'ruim')); lr.append(li);
+  }
+
+  // Segundo plano
+  const df = $('dl-fundo'); df.replaceChildren();
+  const b = d.batimento;
+  linhaDl(df, 'Medindo desde', horaLocal(b.medidoDesdeEm));
+  linhaDl(df, 'Batidas do servidor', String(b.batidas));
+  linhaDl(df, 'Maior pausa', selo((b.maiorPausaMs / 1000).toFixed(1) + ' s', b.maiorPausaMs < b.limiarPausaMs ? 'ok' : 'ruim'));
+  linhaDl(df, 'Avisos do app', b.eventosApp.length ? b.eventosApp.slice(-4).map((e) => `${e.tipo} ${horaLocal(e.em)}`).join(' · ') : 'nenhum ainda');
+  const lp = $('lista-pausas'); lp.replaceChildren();
+  for (const p of b.pausas.slice(-5)) {
+    const li = document.createElement('li'); li.textContent = `Servidor parado por ${(p.duracaoMs / 1000).toFixed(1)} s, às ${horaLocal(p.em)}`; lp.append(li);
+  }
+}
+
+function horaLocal(iso) { try { return new Date(iso).toLocaleTimeString('pt-BR'); } catch (_) { return iso; } }
+function formatarTempo(s) { const m = Math.floor(s / 60); return m < 1 ? s + ' s' : `${m} min ${s % 60} s`; }
+
+async function atualizar() {
+  if (document.visibilityState !== 'visible') return; // pausa quando a tela não está visível
+  try {
+    const r = await fetch('/api/diagnostico', { cache: 'no-store' });
+    ultimoDiag = await r.json();
+    infoNativa = lerInfoNativa();
+    renderDiag(ultimoDiag);
+    renderAparelho();
+  } catch (e) { /* tenta de novo no próximo ciclo */ }
+}
+
+// WebSocket
+(function ws() {
+  let n = 0;
+  const conectar = () => {
+    const sock = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+    sock.onopen = () => { $('ws-estado').replaceChildren(selo('CONECTADO', 'ok')); };
+    sock.onmessage = (ev) => { try { if (JSON.parse(ev.data).tipo === 'batida') $('ws-batidas').textContent = String(++n); } catch (_) {} };
+    sock.onclose = () => { $('ws-estado').replaceChildren(selo('RECONECTANDO…', 'alerta')); setTimeout(conectar, 2000); };
+    sock.onerror = () => sock.close();
+  };
+  conectar();
+})();
+
+// Teste do conector
+async function testar(candidato) {
+  const usuario = $('usuario').value.trim();
+  const area = $('resultado-teste');
+  if (!usuario) { area.textContent = 'Digite um @ primeiro.'; return; }
+  for (const b of document.querySelectorAll('#s-teste button')) b.disabled = true;
+  area.textContent = 'Testando… isso pode levar até 30 s por conector.';
+  try {
+    const r = await fetch('/api/testar-conector', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario, candidato }) });
+    const dados = await r.json();
+    if (!r.ok) { area.textContent = dados.erro || 'Erro no teste.'; return; }
+    ultimoTeste = dados.resultados;
+    area.replaceChildren();
+    for (const t of dados.resultados) {
+      const bloco = document.createElement('div'); bloco.className = 'cand';
+      const titulo = document.createElement('div');
+      titulo.append(`${t.candidato} ${t.versaoConector ? '(' + t.versaoConector + ') ' : ''}`, selo(t.status.toUpperCase(), t.status === 'aprovado' ? 'ok' : t.status === 'reprovado' ? 'ruim' : 'alerta'));
+      const resumo = document.createElement('p'); resumo.textContent = t.resumo;
+      bloco.append(titulo, resumo);
+      if (t.erro) { const pre = document.createElement('pre'); pre.textContent = `${t.erro.nome || 'Erro'} ${t.erro.codigo || ''}\n${t.erro.mensagem}\n${t.erro.pilha}`; bloco.append(pre); }
+      area.append(bloco);
+    }
+    atualizar();
+  } catch (e) {
+    area.textContent = 'Não consegui falar com o servidor do app: ' + e;
+  } finally {
+    for (const b of document.querySelectorAll('#s-teste button')) b.disabled = false;
+  }
+}
+$('btn-todos').onclick = () => testar('todos');
+$('btn-novo').onclick = () => testar('conector-novo');
+$('btn-antigo').onclick = () => testar('conector-antigo');
+$('btn-zerar').onclick = async () => { await fetch('/api/zerar-medicao', { method: 'POST' }); atualizar(); };
+$('btn-bateria').onclick = () => { try { NATIVO.abrirAjusteBateria(); } catch (e) { alert('Não foi possível abrir o ajuste: ' + e); } };
+
+// Relatório em texto
+function montarRelatorio() {
+  const d = ultimoDiag; if (!d) return 'Sem dados ainda.';
+  const n = infoNativa || {};
+  const L = [];
+  L.push('RELATÓRIO PUXA BRASIL — FASE 0', 'Gerado em ' + new Date().toISOString(), '');
+  L.push(`Aparelho: ${n.fabricante || '?'} ${n.modelo || '?'} · Android ${n.android || '?'} (API ${n.sdk || '?'}) · WebView ${n.webview || '?'}`);
+  L.push(`Serviço em primeiro plano: ${n.servico || '?'} · Notificações: ${n.notificacoes} · Fora da otimização de bateria: ${n.ignorandoBateria}`);
+  L.push(`Node embutido: ${d.node.versao} (${d.node.plataforma}/${d.node.arquitetura}) · V8 ${d.node.v8} · porta ${d.porta} · ligado há ${d.uptimeS}s · RSS ${d.memoriaMB.rss} MB`);
+  L.push(`Pasta de dados: ${d.pastaDados.caminho} · gravável: ${d.pastaDados.gravavel}${d.pastaDados.erro ? ' (' + d.pastaDados.erro + ')' : ''} · bridge: ${d.ponteDisponivel}`);
+  L.push('Recursos: ' + Object.entries(d.recursos).map(([k, v]) => `${k}=${v ? 'sim' : 'FALTA'}`).join(', '));
+  L.push('');
+  for (const c of d.conectores.candidatos) {
+    L.push(`Conector ${c.nome}: versão ${c.versao} · exige Node ${c.enginesNode || 'não declara'} · ${c.engines.texto}`);
+    const t = (ultimoTeste || []).find((x) => x.candidato === c.nome) || c.ultimoTeste;
+    if (t) {
+      L.push(`  Teste (@${t.usuario}): ${t.status.toUpperCase()} na etapa "${t.etapa}" — ${t.resumo} [${t.tempoMs} ms] API: ${t.api || '—'}`);
+      if (t.erro) L.push(`  Erro: ${t.erro.nome} ${t.erro.codigo || ''} ${t.erro.mensagem}`, '  ' + t.erro.pilha.split('\n').join('\n  '));
+    } else L.push('  Teste: ainda não executado');
+  }
+  if (d.conectores.nativos.length) L.push('Módulos nativos nas dependências: ' + d.conectores.nativos.map((x) => x.pacote + (x.motivos ? ' [' + x.motivos.join('; ') + ']' : '')).join(', '));
+  L.push('');
+  const b = d.batimento;
+  L.push(`Segundo plano: medindo desde ${b.medidoDesdeEm} · ${b.batidas} batidas · maior pausa ${(b.maiorPausaMs / 1000).toFixed(1)} s · pausas > ${b.limiarPausaMs / 1000}s: ${b.pausas.length}`);
+  for (const p of b.pausas) L.push(`  parado ${(p.duracaoMs / 1000).toFixed(1)} s às ${p.em}`);
+  L.push('Avisos do app: ' + (b.eventosApp.map((e) => `${e.tipo}@${e.em}`).join(', ') || 'nenhum'));
+  if (d.errosNaoTratados.length) { L.push('', 'Erros não tratados:'); for (const e of d.errosNaoTratados) L.push(`  ${e.em} ${e.tipo}: ${e.mensagem}`); }
+  L.push('', 'Log recente:', ...d.logRecente);
+  return L.join('\n');
+}
+$('btn-copiar').onclick = async () => {
+  const texto = montarRelatorio();
+  const pre = $('texto-relatorio'); pre.textContent = texto; pre.hidden = false;
+  try { await navigator.clipboard.writeText(texto); $('btn-copiar').textContent = 'Copiado! Cole na conversa'; }
+  catch (_) {
+    const r = document.createRange(); r.selectNodeContents(pre);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    $('btn-copiar').textContent = 'Texto selecionado: use Copiar do Android';
+  }
+};
+
+atualizar();
+setInterval(atualizar, 2000);
+document.addEventListener('visibilitychange', atualizar);
+</script>
+</body>
+</html>

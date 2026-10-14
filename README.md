@@ -73,7 +73,7 @@ O TikTok exige que o pedido de conexão seja assinado por um serviço de terceir
 
 1. Crie uma conta gratuita em eulerstream.com e gere uma chave de API.
 2. No app, role até **Chave do serviço de assinatura**, cole a chave e toque em **Salvar chave**. Ela fica só no aparelho e nunca entra no relatório (só os 4 últimos caracteres).
-3. Toque em **Só o antigo** e teste com o @ de uma live que esteja no ar.
+3. Toque em **Testar todos** e teste com o @ de uma live que esteja no ar.
 4. Nunca cole a chave em conversas, no GitHub nem em arquivos do projeto. Se ela vazar, gere outra no site e remova a antiga.
 
 ## 3. Erros comuns
@@ -115,8 +115,9 @@ Nada disso foi marcado como testado. O código foi escrito sem acesso a um celul
 **Achado importante: o conector novo provavelmente não roda no Node 18.**
 A versão atual do `tiktok-live-connector` (2.5.0, ramo de desenvolvimento no GitHub) declara `engines.node >= 20.0.0` e usa a biblioteca `got` 15. O Node embutido é 18.20.4. Pelo prompt, o plano B (a) é usar uma versão anterior do conector. Por isso a Fase 0 instala **dois candidatos** e testa os dois:
 
-- `conector-novo` = `tiktok-live-connector@^2` (API `TikTokLiveConnection`);
-- `conector-antigo` = `tiktok-live-connector@1.2.3` (API `WebcastPushConnection`, última da linha 1.x listada nas versões oficiais).
+- `conector-2-0` = `tiktok-live-connector@2.0.1` e `conector-2-1` = `2.1.0` (API `TikTokLiveConnection`, assinatura pelo Euler Stream, sem as dependências que exigem Node 20);
+- `conector-antigo` = `tiktok-live-connector@1.2.3` (API `WebcastPushConnection`; no teste da Fase 0 o endereço antigo de assinatura respondeu 403, com e sem chave);
+- a linha `2.2+` foi descartada: exige Node 20 (a 2.5.0 falhou com "Invalid regular expression flags" no Node 18).
 
 O diagnóstico diz qual funciona de verdade. Se **nenhum** funcionar, seguimos pelos planos (b), (c) e (d) do prompt.
 

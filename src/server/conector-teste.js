@@ -28,7 +28,7 @@ export function classificarErro(err, { etapa = 'conectar' } = {}) {
   // O TikTok respondeu, mas não achou o @ (digitado errado ou conta inexistente).
   if (/user_not_found|19881007|user not found/i.test(msg)) return 'usuario';
   // Falha na assinatura (serviço de terceiros): vem antes de "rede", porque a mensagem cita "request failed".
-  if (nome === 'SignatureError' || /failed to sign|sign(ing)? (request|server|api)|eulerstream|euler stream/i.test(msg)) return 'assinatura';
+  if (/^sign/i.test(nome) || /failed to sign|sign(ing)? (request|server|api)|eulerstream|euler stream/i.test(msg)) return 'assinatura';
   if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|EHOSTUNREACH|timed? ?out|timeout|network|fetch failed|socket hang up|getaddrinfo/i.test(`${codigo} ${msg}`)) return 'rede';
   if (/rate.?limit|too many requests|429|api key|signature|sign (server|api)|unauthorized|forbidden|\b40[13]\b/i.test(msg)) return 'limite';
   // TypeError logo no carregamento/construção indica recurso inexistente no Node embutido.
@@ -90,7 +90,7 @@ function comLimite(promessa, ms, rotulo) {
 }
 
 /**
- * Testa um candidato (nome do módulo instalado, ex.: "conector-novo").
+ * Testa um candidato (nome do módulo instalado, ex.: "conector-2-0").
  * Dependências injetáveis para teste: importador.
  */
 export async function testarConector({
@@ -153,10 +153,10 @@ export async function testarConector({
   resultado.etapa = 'criar';
   let conexao;
   try {
-    // A chave vai só para o serviço de assinatura. API nova: signApiKey. API antiga (1.x): cabeçalho e parâmetro.
+    // A chave vai só para o serviço de assinatura. API nova: signApiKey; as duas APIs também recebem cabeçalho e parâmetro
+    // (opção ignorada pela versão que não a conhece).
     const opcoes = !chaveEuler ? null
-      : Nova ? { signApiKey: chaveEuler }
-        : { signProviderOptions: { headers: { 'x-api-key': chaveEuler }, params: { apiKey: chaveEuler } } };
+      : { ...(Nova ? { signApiKey: chaveEuler } : {}), signProviderOptions: { headers: { 'x-api-key': chaveEuler }, params: { apiKey: chaveEuler } } };
     conexao = opcoes ? new Classe(usuario, opcoes) : new Classe(usuario);
   } catch (e) {
     const tipo = classificarErro(e, { etapa: 'criar' });

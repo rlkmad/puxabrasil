@@ -36,7 +36,9 @@ if (!semNpm) {
 }
 
 const lerJson = (a) => { try { return JSON.parse(fs.readFileSync(a, 'utf8')); } catch (_) { return null; } };
-const candidatos = ['conector-novo', 'conector-antigo'].map((nome) => {
+// os candidatos são todas as dependências chamadas "conector-*" do nodejs-project/package.json
+const nomesCandidatos = Object.keys(lerJson(path.join(raiz, 'nodejs-project', 'package.json'))?.dependencies ?? {}).filter((n) => n.startsWith('conector-'));
+const candidatos = nomesCandidatos.map((nome) => {
   const pkg = lerJson(path.join(nodejs, 'node_modules', nome, 'package.json'));
   return {
     nome,

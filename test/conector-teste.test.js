@@ -105,6 +105,7 @@ const MSG_USUARIO = 'Failed to retrieve room_id from page source. API Error 1988
 test('classificarErro: assinatura (403 do serviço) e usuário inexistente', () => {
   assert.equal(classificarErro(erro('SignatureError', MSG_ASSINATURA)), 'assinatura');
   assert.equal(classificarErro(erro('Error', 'Failed to sign request: boom')), 'assinatura');
+  assert.equal(classificarErro(erro('SignAPIError', 'Euler responded 401')), 'assinatura');
   assert.equal(classificarErro(erro('Error', MSG_USUARIO)), 'usuario');
   // continua distinguindo rede de verdade
   assert.equal(classificarErro(erro('Error', 'getaddrinfo ENOTFOUND www.tiktok.com')), 'rede');
@@ -136,8 +137,9 @@ test('API antiga recebe a chave em signProviderOptions; API nova em signApiKey; 
   await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: async () => fabrica('antigo'), chaveEuler: 'euler_ABCDEFGH' });
   await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: async () => fabrica('novo'), chaveEuler: 'euler_ABCDEFGH' });
   await testarConector({ candidato: 'x', usuario: 'abc', ...rapido, importador: async () => fabrica('antigo') });
-  assert.deepEqual(capturas[0].opcoes, { signProviderOptions: { headers: { 'x-api-key': 'euler_ABCDEFGH' }, params: { apiKey: 'euler_ABCDEFGH' } } });
-  assert.deepEqual(capturas[1].opcoes, { signApiKey: 'euler_ABCDEFGH' });
+  const sign = { headers: { 'x-api-key': 'euler_ABCDEFGH' }, params: { apiKey: 'euler_ABCDEFGH' } };
+  assert.deepEqual(capturas[0].opcoes, { signProviderOptions: sign });
+  assert.deepEqual(capturas[1].opcoes, { signApiKey: 'euler_ABCDEFGH', signProviderOptions: sign });
   assert.equal(capturas[2].opcoes, undefined);
 });
 

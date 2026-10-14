@@ -70,10 +70,8 @@
   <h2>Testar conector</h2>
   <label for="usuario">@ de qualquer perfil (sem o @)</label>
   <input id="usuario" type="text" inputmode="text" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="ex.: nomedoperfil">
-  <div class="linha">
+  <div class="linha" id="botoes-teste">
     <button class="cheio" id="btn-todos" type="button">Testar todos</button>
-    <button id="btn-novo" type="button">Só o novo</button>
-    <button id="btn-antigo" type="button">Só o antigo</button>
   </div>
   <p class="pequeno">Dica: se o perfil não estiver ao vivo, "usuário offline" também vale como aprovado. O teste pode levar até 30 s por conector.</p>
   <div id="resultado-teste" aria-live="polite"></div>
@@ -179,7 +177,7 @@ function renderDiag(d) {
   for (const c of d.conectores.candidatos) {
     const bloco = document.createElement('div'); bloco.className = 'cand';
     const dl = document.createElement('dl');
-    linhaDl(dl, 'Candidato', c.nome === 'conector-novo' ? 'conector-novo (versão mais nova)' : c.nome === 'conector-antigo' ? 'conector-antigo (linha 1.x)' : c.nome);
+    linhaDl(dl, 'Candidato', `${c.nome} (tiktok-live-connector ${c.versao ?? '?'})`);
     linhaDl(dl, 'Versão', c.versao ?? '—');
     linhaDl(dl, 'Exige Node', c.enginesNode ?? 'não declara');
     const ok = c.engines.ok;
@@ -235,6 +233,7 @@ async function atualizar() {
     ultimoDiag = await r.json();
     infoNativa = lerInfoNativa();
     renderDiag(ultimoDiag);
+    montarBotoesCandidatos(ultimoDiag);
     mostrarEuler(ultimoDiag.euler);
     renderAparelho();
   } catch (e) { /* tenta de novo no próximo ciclo */ }
@@ -283,8 +282,18 @@ async function testar(candidato) {
   }
 }
 $('btn-todos').onclick = () => testar('todos');
-$('btn-novo').onclick = () => testar('conector-novo');
-$('btn-antigo').onclick = () => testar('conector-antigo');
+// um botão por candidato, criado quando o diagnóstico chega
+function montarBotoesCandidatos(d) {
+  const area = $('botoes-teste');
+  for (const c of d.conectores.candidatos) {
+    if (area.querySelector(`[data-candidato="${c.nome}"]`)) continue;
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.candidato = c.nome;
+    b.textContent = `Só ${c.versao ?? c.nome}`;
+    b.onclick = () => testar(c.nome);
+    area.append(b);
+  }
+}
 function mostrarEuler(e) {
   ultimoEuler = e;
   $('euler-estado').replaceChildren(e && e.configurada ? selo(`SIM · termina em ${e.final} (${e.origem})`, 'ok') : selo('NÃO', 'alerta'));
@@ -297,7 +306,7 @@ async function salvarChave(valor) {
     if (!r.ok) { aviso.textContent = dados.erro || 'Não consegui salvar.'; return; }
     $('chave-euler').value = '';
     mostrarEuler(dados);
-    aviso.textContent = dados.configurada ? 'Chave salva. Agora toque em "Só o antigo" para testar.' : 'Chave removida.';
+    aviso.textContent = dados.configurada ? 'Chave salva. Agora toque em "Testar todos" com um @ que esteja ao vivo.' : 'Chave removida.';
   } catch (e) { aviso.textContent = 'Não consegui falar com o servidor do app: ' + e; }
 }
 $('btn-salvar-chave').onclick = () => {

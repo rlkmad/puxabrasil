@@ -24,6 +24,8 @@ copiar(path.join(raiz, 'web-bootstrap', 'index.html'), path.join(www, 'index.htm
 copiar(path.join(raiz, 'nodejs-project', 'package.json'), path.join(nodejs, 'package.json'));
 copiar(path.join(raiz, 'nodejs-project', 'main.js'), path.join(nodejs, 'main.js'));
 copiar(path.join(raiz, 'src'), path.join(nodejs, 'src'));
+// padrões do jogo e tabela de presentes (o app lê daqui; o que o streamer salvar na pasta de dados vale mais)
+copiar(path.join(raiz, 'config'), path.join(nodejs, 'config'));
 // dentro do app o código do servidor é ES module
 copiar(path.join(raiz, 'nodejs-project', 'src-package.json'), path.join(nodejs, 'src', 'package.json'));
 

@@ -1,0 +1,37 @@
+{
+  "efeitos": {
+    "apoiador-vip": {
+      "lula": {
+        "nome": "Rosa",
+        "moedas": 1
+      },
+      "flavio": {
+        "nome": "Rosa branca",
+        "moedas": 1
+      }
+    },
+    "combo-de-torcida": {
+      "lula": {
+        "nome": "Heart Me",
+        "moedas": 1
+      },
+      "flavio": {
+        "nome": "Bom jogo (GG)",
+        "moedas": 1,
+        "aliases": [
+          "GG"
+        ]
+      }
+    },
+    "rojao": {
+      "lula": {
+        "nome": "Fogos de artifício",
+        "moedas": 5
+      },
+      "flavio": {
+        "nome": "Coração com os dedos",
+        "moedas": 5
+      }
+    }
+  }
+}

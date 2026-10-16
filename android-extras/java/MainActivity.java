@@ -5,6 +5,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+
+import androidx.activity.OnBackPressedCallback;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -18,6 +22,42 @@ public class MainActivity extends BridgeActivity {
         getBridge().getWebView().addJavascriptInterface(new PuxaBridge(this), "PuxaNativo");
         pedirPermissaoDeNotificacao();
         iniciarServico();
+
+        // No Modo Live o botão Voltar nunca sai direto: pede confirmação. Fora dele, segue o comportamento normal.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (PuxaBridge.emLive) {
+                    confirmarSaidaDoModoLive();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                    setEnabled(true);
+                }
+            }
+        });
+    }
+
+    private void confirmarSaidaDoModoLive() {
+        new AlertDialog.Builder(this)
+                .setTitle("Sair do Modo Live?")
+                .setMessage("A transmissão mostra esta tela. Sair agora esconde o jogo da live.")
+                .setNegativeButton("Continuar no jogo", null)
+                .setPositiveButton("Sair", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        PuxaBridge.emLive = false;
+                        PuxaBridge.aplicarModoLive(MainActivity.this, false);
+                        getBridge().getWebView().evaluateJavascript("location.href='/painel'", null);
+                    }
+                })
+                .show();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean temFoco) {
+        super.onWindowFocusChanged(temFoco);
+        if (temFoco && PuxaBridge.emLive) PuxaBridge.aplicarModoLive(this, true);
     }
 
     private void pedirPermissaoDeNotificacao() {

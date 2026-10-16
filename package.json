@@ -1,7 +1,7 @@
 {
   "name": "puxa-brasil",
-  "version": "0.0.1",
-  "description": "Puxa Brasil: jogo interativo para live do TikTok, em app Android (Fase 0: esqueleto e teste do Node embutido)",
+  "version": "0.1.0",
+  "description": "Puxa Brasil: jogo interativo para live do TikTok, em app Android (Fase 1: motor do jogo, simulador e Modo Live)",
   "private": true,
   "type": "module",
   "scripts": {

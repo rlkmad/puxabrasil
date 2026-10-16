@@ -6,7 +6,6 @@
   "dependencies": {
     "conector-2-0": "npm:tiktok-live-connector@2.0.1",
     "conector-2-1": "npm:tiktok-live-connector@2.1.0",
-    "conector-antigo": "npm:tiktok-live-connector@1.2.3",
     "express": "^4.21.2",
     "ws": "^8.18.2"
   }

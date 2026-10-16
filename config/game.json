@@ -1,0 +1,91 @@
+{
+  "nomeDoJogo": "PUXA BRASIL",
+  "duracoes": {
+    "aberturaS": 5,
+    "disputaS": 90,
+    "retaFinalS": 15,
+    "morteSubitaS": 10,
+    "resultadoS": 10
+  },
+  "pontos": {
+    "comentario": 1,
+    "curtida": 0.1,
+    "seguidor": 15,
+    "compartilhamento": 20,
+    "assinante": 50
+  },
+  "assinante": {
+    "ativo": false
+  },
+  "limites": {
+    "comentarioIntervaloS": 1.5,
+    "comentarioPontosPorMin": 60,
+    "curtidaPontosPorMin": 20,
+    "comentarioRepetidoS": 5,
+    "trocaDeLadoS": 20,
+    "compartilhamentoIntervaloS": 300
+  },
+  "corda": {
+    "meiaVidaS": 10,
+    "piso": 15,
+    "velocidadeMaxPorS": 8,
+    "suavizacaoPorS": 3,
+    "nocauteLimite": 8,
+    "nocauteS": 2,
+    "empateMin": 49,
+    "empateMax": 51
+  },
+  "retaFinal": {
+    "ativa": true,
+    "multiplicador": 2
+  },
+  "morteSubita": {
+    "multiplicador": 2
+  },
+  "multiplicadorMaximo": 6,
+  "zebra": {
+    "ativa": true,
+    "distancia": 30,
+    "tempoS": 5,
+    "bonusPercentual": 20,
+    "sairAbaixoDe": 10
+  },
+  "barraVirada": {
+    "ativa": true,
+    "meta": 300,
+    "impulso": 40
+  },
+  "apoiadoresPorLado": 24,
+  "lados": {
+    "lula": {
+      "nome": "LULA",
+      "palavras": [
+        "lula",
+        "vermelho",
+        "13",
+        "🔴"
+      ]
+    },
+    "flavio": {
+      "nome": "FLÁVIO",
+      "palavras": [
+        "flavio",
+        "bolsonaro",
+        "bolso",
+        "verde",
+        "amarelo",
+        "22",
+        "🟢",
+        "🟡"
+      ]
+    }
+  },
+  "avisos": [
+    "Comente LULA ou FLÁVIO e entre na corda",
+    "Rosa = Lula · Rosa branca = Flávio",
+    "Curta para ajudar quem está perdendo",
+    "Compartilhe e chame a Carreata",
+    "Siga e vire Torcedor Fiel"
+  ],
+  "avisoIntervaloS": 25
+}

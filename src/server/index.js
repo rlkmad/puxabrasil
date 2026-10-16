@@ -13,6 +13,13 @@ import { resolverPastaDados, testarGravacao, recursosDoNode, infoDoNode } from '
 import { avaliarEngines } from './versoes.js';
 import { testarConector, STATUS } from './conector-teste.js';
 import { criarConfiguracao } from './configuracao.js';
+import { criarJogo } from './jogo.js';
+import { executarSimulador } from './simulador-api.js';
+import { lerJsonSeguro } from './persistencia.js';
+import { validarConfig } from '../engine/config.js';
+import { validarGifts, EFEITOS } from '../engine/efeitos.js';
+import { MSG } from '../shared/mensagens-ws.js';
+import { AVISO_LEGAL } from '../shared/textos.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ_NODEJS = path.resolve(AQUI, '..', '..');
@@ -34,6 +41,22 @@ function lerCandidatos() {
     };
   }
   return { candidatos: [], nativos: [], geradoEm: null, origem: 'nenhum conector instalado' };
+}
+
+/** Lê config/game.json e config/gifts.json (o que o streamer salvou na pasta de dados vale mais que o padrão do app). */
+function carregarConfiguracaoDoJogo(pastaDados) {
+  const avisos = [];
+  const ler = (nome) => {
+    for (const base of [path.join(pastaDados, 'config'), path.join(RAIZ_NODEJS, 'config')]) {
+      const r = lerJsonSeguro(path.join(base, nome));
+      if (r.erro) avisos.push(`O arquivo ${nome} está com erro e foi ignorado (${r.erro}).`);
+      if (r.dados !== null) return r.dados;
+    }
+    return undefined;
+  };
+  const jogo = validarConfig(ler('game.json'));
+  const presentes = validarGifts(ler('gifts.json'));
+  return { config: jogo.config, gifts: presentes.gifts, avisos: [...avisos, ...jogo.avisos, ...presentes.avisos] };
 }
 
 export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, host = '127.0.0.1' } = {}) {
@@ -73,7 +96,7 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
   // A página de abertura (origem http://localhost) descobre a porta chamando este endereço.
   app.get('/api/ping', (_req, res) => {
     res.set({ 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' });
-    res.json({ app: 'puxa-brasil', fase: 0, node: process.version });
+    res.json({ app: 'puxa-brasil', fase: 1, node: process.version });
   });
 
   const enviarPagina = (arquivo) => (_req, res) => {
@@ -83,14 +106,33 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
   app.get('/', (_req, res) => res.redirect('/painel'));
   app.get('/painel', enviarPagina('painel'));
   app.get('/overlay', enviarPagina('overlay'));
+  // arquivos de apoio das telas (scripts e estilos)
+  app.use('/painel', express.static(path.join(PASTA_WEB, 'painel'), { index: false, setHeaders: (r) => r.set('Cache-Control', 'no-store') }));
+  app.use('/overlay', express.static(path.join(PASTA_WEB, 'overlay'), { index: false, setHeaders: (r) => r.set('Cache-Control', 'no-store') }));
 
   const servidor = http.createServer(app);
   const wss = new WebSocketServer({ server: servidor, path: '/ws' });
+  const difundir = (obj) => {
+    const texto = JSON.stringify(obj);
+    for (const c of wss.clients) { if (c.readyState === 1 && c.bufferedAmount < 524288) c.send(texto); }
+  };
+  const confJogo = carregarConfiguracaoDoJogo(dados.caminho);
+  for (const a of confJogo.avisos) info('Configuração do jogo: ' + a);
+  const jogo = criarJogo({
+    config: confJogo.config, gifts: confJogo.gifts, avisosDeConfig: confJogo.avisos, pastaDados: dados.caminho,
+    difundir, temClientes: () => wss.clients.size > 0,
+  });
+  jogo.iniciarLoop();
+
   let numeroBatida = 0;
   wss.on('connection', (ws) => {
-    ws.send(JSON.stringify({ tipo: 'ola', fase: 0, node: process.version }));
+    ws.send(JSON.stringify({ tipo: MSG.OLA, fase: 1, node: process.version }));
     ws.on('message', (m) => {
-      try { if (JSON.parse(String(m)).tipo === 'ping') ws.send(JSON.stringify({ tipo: 'pong', t: Date.now() })); } catch (_) { /* ignora */ }
+      try {
+        const msg = JSON.parse(String(m));
+        if (msg.tipo === MSG.PING) ws.send(JSON.stringify({ tipo: MSG.PONG, t: Date.now() }));
+        else if (msg.tipo === MSG.FPS) jogo.registrarFpsDoOverlay(msg.fps);
+      } catch (_) { /* ignora */ }
     });
     ws.on('error', () => {});
   });
@@ -139,6 +181,26 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
       res.json(config.resumoEuler());
     } catch (e) {
       res.status(400).json({ erro: e?.code === 'CHAVE_INVALIDA' ? e.message : 'Não consegui salvar a chave: ' + (e?.message || e) });
+    }
+  });
+
+  // ---- jogo ----
+  app.get('/api/jogo/estado', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json(jogo.motor.estado()); });
+  app.get('/api/jogo/metricas', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json(jogo.metricas()); });
+  app.get('/api/jogo/config', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ config: jogo.config, legenda: jogo.legenda(), avisos: jogo.avisosDeConfig, avisoLegal: AVISO_LEGAL, presentesDoSimulador: jogo.simulador.presentes(), efeitos: EFEITOS.map((e) => ({ id: e.id, nome: e.nome })) });
+  });
+  app.post('/api/jogo/comando', (req, res) => {
+    const r = jogo.comando(String(req.body?.comando ?? ''));
+    res.status(r.ok ? 200 : 400).json(r);
+  });
+  app.post('/api/simulador', (req, res) => {
+    try {
+      const r = executarSimulador(jogo, req.body ?? {});
+      res.json(r);
+    } catch (e) {
+      res.status(400).json({ erro: e?.message || String(e) });
     }
   });
 
@@ -197,6 +259,7 @@ export async function iniciarServidor({ portaInicial = 3000, tentativas = 11, ho
     montarDiagnostico,
     parar: () => new Promise((resolve) => {
       clearInterval(emissor);
+      jogo.pararLoop();
       batimento.parar();
       for (const c of wss.clients) c.terminate();
       wss.close(() => servidor.close(() => resolve()));

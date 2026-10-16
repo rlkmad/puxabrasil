@@ -17,7 +17,7 @@ test('servidor sobe em 127.0.0.1, responde /api/ping, /painel, /overlay e WebSoc
     const ping = await (await fetch(base + '/api/ping')).json();
     assert.equal(ping.app, 'puxa-brasil');
     assert.match(await (await fetch(base + '/painel')).text(), /Diagnóstico/);
-    assert.match(await (await fetch(base + '/overlay')).text(), /Aguardando/);
+    assert.match(await (await fetch(base + '/overlay')).text(), /overlay\.js/);
     const diag = await (await fetch(base + '/api/diagnostico')).json();
     assert.equal(diag.porta, s.porta);
     assert.equal(diag.pastaDados.gravavel, true);

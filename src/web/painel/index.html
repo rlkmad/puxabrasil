@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>Puxa Brasil · Diagnóstico</title>
+<title>Puxa Brasil · Painel</title>
 <style>
   :root {
     --fundo: #0B1B3A;
@@ -46,11 +46,55 @@
   .cand:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
   ul { margin: 6px 0 0; padding-left: 20px; }
   .pequeno { font-size: .88rem; color: var(--suave); }
+  /* abas e jogo (Fase 1) */
+  .topo { position: sticky; top: 0; z-index: 5; background: var(--fundo); margin: 0 -12px 10px; padding: 8px 12px 6px; border-bottom: 1px solid var(--borda); }
+  .topo-linha { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .topo h1 { margin: 0; font-size: 1.15rem; }
+  nav.abas { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; }
+  nav.abas button { flex: 1 0 auto; min-height: 44px; border-color: var(--borda); color: var(--texto); }
+  nav.abas button[aria-selected=true] { background: var(--amarelo); color: #1b2a00; border-color: var(--amarelo); }
+  .aba[hidden] { display: none; }
+  .grade { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+  .grade.tres { grid-template-columns: repeat(3, 1fr); }
+  .grade button { width: 100%; padding: 0 8px; }
+  button.lula { border-color: #ff6b6b; color: #ff9a9a; }
+  button.flavio { border-color: #2fd07a; color: #7fe8aa; }
+  button.perigo { border-color: var(--vermelho); color: var(--vermelho); }
+  .placar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: stretch; }
+  .time { border-radius: 10px; padding: 10px; text-align: center; border: 3px solid; }
+  .time.lula { border-color: #D0021B; } .time.flavio { border-color: #009C3B; }
+  .time .nome { font-weight: 800; } .time.lula .nome { color: #ff6b6b; } .time.flavio .nome { color: #FFDF00; }
+  .time .num { font-size: 2rem; font-weight: 900; line-height: 1.1; }
+  .meio { text-align: center; align-self: center; font-size: .85rem; color: var(--suave); }
+  .meio b { display: block; font-size: 1.4rem; color: var(--texto); }
+  .corda { position: relative; height: 30px; border-radius: 15px; margin: 14px 4px 6px; background: linear-gradient(90deg, #D0021B 0 50%, #009C3B 50% 100%); border: 2px solid #fff3; }
+  .corda i { position: absolute; top: -6px; width: 6px; height: 42px; background: #fff; border-radius: 3px; transform: translateX(-3px); box-shadow: 0 0 0 2px #0B1B3A; transition: left .2s linear; }
+  .corda-rotulos { display: flex; justify-content: space-between; font-size: .85rem; color: var(--suave); }
+  .feed-painel { list-style: none; padding: 0; margin: 6px 0 0; font-size: .92rem; }
+  .feed-painel li { padding: 3px 0; border-bottom: 1px dashed var(--borda); }
+  .feed-painel li.lula { color: #ff9a9a; } .feed-painel li.flavio { color: #7fe8aa; }
+  .faixa { display: inline-block; background: var(--amarelo); color: #1b2a00; font-weight: 800; border-radius: 6px; padding: 1px 8px; font-size: .82rem; }
+  label.campo { display: block; margin-top: 10px; color: var(--suave); font-size: .9rem; }
+  select, input[type=number] { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid var(--borda); background: #0a1630; color: var(--texto); }
+  dialog { background: var(--painel); color: var(--texto); border: 2px solid var(--amarelo); border-radius: 14px; max-width: 420px; }
+  dialog::backdrop { background: #000a; }
 </style>
 </head>
 <body>
-<h1>Puxa Brasil · Diagnóstico</h1>
-<p class="sub">Fase 0: confirmar que o Node embutido, o conector do TikTok e o serviço em primeiro plano funcionam neste aparelho.</p>
+<header class="topo">
+  <div class="topo-linha"><h1>Puxa Brasil</h1><span id="topo-conexao"><span class="selo alerta">conectando…</span></span></div>
+  <nav class="abas" role="tablist" aria-label="Abas do painel">
+    <button type="button" role="tab" id="tab-jogo" data-aba="jogo" aria-selected="true">Jogo</button>
+    <button type="button" role="tab" id="tab-sim" data-aba="sim" aria-selected="false">Simulador</button>
+    <button type="button" role="tab" id="tab-diag" data-aba="diag" aria-selected="false">Diagnóstico</button>
+  </nav>
+</header>
+
+<div id="aba-jogo" class="aba" role="tabpanel" aria-labelledby="tab-jogo"></div>
+<div id="aba-sim" class="aba" role="tabpanel" aria-labelledby="tab-sim" hidden></div>
+
+<div id="aba-diag" class="aba" role="tabpanel" aria-labelledby="tab-diag" hidden>
+<p class="sub">Confira se o Node embutido, o conector do TikTok e o serviço em primeiro plano funcionam neste aparelho.</p>
 
 <section id="s-conexao">
   <h2>Servidor do app</h2>
@@ -118,6 +162,7 @@
   </div>
   <pre id="texto-relatorio" hidden></pre>
 </section>
+</div>
 
 <script>
 'use strict';
@@ -365,5 +410,6 @@ atualizar();
 setInterval(atualizar, 2000);
 document.addEventListener('visibilitychange', atualizar);
 </script>
+<script src="/painel/painel-jogo.js"></script>
 </body>
 </html>

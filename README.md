@@ -1,177 +1,186 @@
-# Puxa Brasil — Fase 0 (esqueleto e teste do Node embutido)
+# Puxa Brasil — Fase 1 (motor do jogo, Simulador e Modo Live)
 
-Jogo interativo para live do TikTok, em app Android. **Esta é a Fase 0**: ainda não existe jogo.
-O objetivo é só provar, no seu celular, que as três peças difíceis funcionam:
+Jogo de cabo de guerra para live do TikTok, em app Android: **Lula × Flávio**. O público puxa a bandeira comentando,
+mandando presentes e curtindo. Tudo roda dentro do celular do streamer (Node.js embutido no app).
 
-1. o **Node.js embutido** no app roda e serve as telas;
-2. o **conector do TikTok** carrega e conecta dentro desse Node;
-3. o **serviço em primeiro plano** mantém tudo vivo com o app em segundo plano.
+**Fase 1 entrega:** o motor completo do jogo (corda, rodadas, fases, anti-spam, palavras que escolhem o lado, Torcida Zebra,
+Barra da Virada, presentes), o **Simulador** no painel (para testar sem estar ao vivo), o **Modo Live** com uma tela do jogo
+simples (corda, bandeira, placar, tempo, apoiadores com iniciais, legenda de presentes, feed e avisos) e testes automáticos
+que **bloqueiam o APK** se falharem.
 
-Se algo falhar aqui, é melhor descobrir agora do que depois de construir o jogo inteiro.
-
----
-
-## 1. Passo a passo para gerar o APK
-
-### 1.1 Conta e repositório no GitHub
-
-1. Crie uma conta grátis em github.com (se ainda não tiver).
-2. Toque em **+ → New repository**. Nome sugerido: `puxa-brasil`.
-3. Escolha **Private** (privado). Isso é importante: o projeto leva dentro a chave que assina o app (veja a seção 6).
-4. Crie o repositório.
-
-### 1.2 Enviar os arquivos
-
-1. Extraia o `puxa-brasil.zip`. Este projeto tem **35 arquivos** (o GitHub aceita até 100 por envio pelo site; **confirmar** o limite atual).
-2. No repositório, toque em **Add file → Upload files** e envie **todas as pastas e arquivos**, inclusive a pasta oculta `.github` (ela contém o gerador do APK).
-   - No celular, algumas galerias de arquivos escondem pastas que começam com ponto. Se a `.github` não aparecer, envie pelo computador, ou crie o arquivo `.github/workflows/build-apk.yml` direto no GitHub: **Add file → Create new file**, digite o caminho completo no nome e cole o conteúdo.
-3. Toque em **Commit changes**.
-
-### 1.3 Gerar o APK
-
-1. Abra a aba **Actions**. Se o GitHub perguntar, permita os workflows.
-2. Escolha **Gerar APK** na lista da esquerda e toque em **Run workflow → Run workflow**.
-   (Ele também roda sozinho a cada envio de arquivos.)
-3. Espere. A primeira vez costuma levar **de 10 a 20 minutos** (confirmar no seu caso).
-4. Quando ficar verde, abra a execução e, no fim da página, em **Artifacts**, baixe **puxa-brasil-apk**.
-   O GitHub entrega um `.zip`: extraia e dentro está o `puxa-brasil.apk`.
-5. Se ficar **vermelho**: abra a execução, toque no passo que falhou, copie as últimas linhas do erro e me envie.
-
-### 1.4 Instalar no celular
-
-1. Abra o `puxa-brasil.apk` pelo gerenciador de arquivos ou pelo navegador.
-2. O Android vai pedir para permitir **instalar apps de fontes desconhecidas** para o app que você usou. Permita só para ele. (O caminho do menu muda de fabricante para fabricante: **confirmar no seu aparelho**.)
-3. Instale e abra. Permita as **notificações** quando o app pedir.
+**Ainda não existe** (próximas fases): ligação com a live real do TikTok no jogo (o conector foi aprovado na Fase 0, mas o jogo ainda
+só recebe eventos do Simulador), efeitos visuais completos dos presentes, sons, ranking, gráficos, edição das regras pelo painel,
+acesso por outro aparelho.
 
 ---
 
-## 2. Teste da Fase 0 no celular
+## 1. Atualizar o projeto no GitHub e gerar o APK
 
-Ao abrir, o app mostra uma tela de abertura e, em alguns segundos, o **Diagnóstico**.
+Se você já tem o repositório da Fase 0, **substitua os arquivos pelos da Fase 1** (o zip é o projeto inteiro):
 
-1. **Leia o quadro "Conector do TikTok × Node embutido".** Cada candidato mostra a versão do conector, o Node que ele exige e se o Node do app atende. *(Eu já espero ver "NÃO ATENDE" no candidato novo; veja a seção 5.)*
-2. **Toque em "Testar todos"** com o @ de qualquer perfil (sem o @). Se o perfil estiver ao vivo, melhor. Se não estiver, "usuário offline" também conta como aprovado.
-3. Anote o resultado de cada candidato: **APROVADO**, **REPROVADO** ou **INCONCLUSIVO** (inconclusivo = sem internet ou serviço de assinatura limitado; tente de novo em alguns minutos).
-4. Confira a seção **Aparelho**: serviço em primeiro plano deve estar **ATIVO**. A notificação "Puxa Brasil rodando" deve aparecer.
-5. Toque em **Abrir ajuste de bateria** e tire o app da otimização de bateria (cada fabricante tem um menu diferente).
-6. Toque em **Zerar medição** na seção **Segundo plano**. Mande o app para segundo plano (abra o TikTok, por exemplo) e **espere 10 minutos**. Depois volte ao Puxa Brasil.
-7. Veja se o servidor ficou parado: **"Maior pausa"** deve ficar abaixo de 2,5 s. Se houve pausa grande, o Android congelou o Node.
-8. Toque em **Copiar relatório** e cole na conversa comigo.
+**Pelo Codespace (recomendado):** envie o `puxa-brasil-fase1.zip` para o Codespace, e no terminal:
 
-### Critério de aceite da Fase 0
+```
+unzip -o puxa-brasil-fase1.zip -d /tmp/fase1
+rsync -a --delete --exclude .git --exclude node_modules /tmp/fase1/puxa-brasil/ ./
+git add -A && git commit -m "Fase 1" && git push
+```
 
-- APK gerado e instalável;
-- o Node e o conector carregam sem erro (**evento recebido ou "usuário offline" vale**);
-- o app e o servidor continuam vivos depois de 10 min em segundo plano;
-- se o conector **não** carregar, o relatório mostra o erro exato e seguimos pelo plano B, **sem** ir para a Fase 1.
+(`--delete` apaga arquivos antigos que não existem mais, como a antiga referência ao conector 1.2.3.)
 
----
+Depois: aba **Actions → Gerar APK** (roda sozinho a cada envio). Primeiro rodam os **testes** (Node 18 e 22); se algum falhar, o APK
+**não é gerado**. Quando ficar verde, baixe **puxa-brasil-apk** em *Artifacts*, **extraia o .zip** e instale o `puxa-brasil.apk` por cima
+da versão anterior (a chave de assinatura é a mesma, então os dados ficam).
 
-### 2.1 Se o teste do conector der erro 403 de assinatura (ajuste 0.1)
-
-O TikTok exige que o pedido de conexão seja assinado por um serviço de terceiros (Euler Stream). Sem chave, o limite gratuito é por IP e pode dar erro 403.
-
-1. Crie uma conta gratuita em eulerstream.com e gere uma chave de API.
-2. No app, role até **Chave do serviço de assinatura**, cole a chave e toque em **Salvar chave**. Ela fica só no aparelho e nunca entra no relatório (só os 4 últimos caracteres).
-3. Toque em **Testar todos** e teste com o @ de uma live que esteja no ar.
-4. Nunca cole a chave em conversas, no GitHub nem em arquivos do projeto. Se ela vazar, gere outra no site e remova a antiga.
-
-## 3. Erros comuns
-
-| O que aparece | O que fazer |
-| --- | --- |
-| Tela de abertura fica rodando e depois diz "o servidor do app não respondeu" | Feche o app (deslize para fora) e abra de novo. Se repetir, mande a mensagem para mim; o Node embutido pode não ter iniciado. |
-| "Conflito de assinatura" ao instalar por cima de outra versão | A outra versão foi assinada com outra chave. Desinstale a antiga (os dados dela somem) e instale esta. Daqui para frente, a chave fixa evita isso. |
-| Teste do conector "INCONCLUSIVO" | Sem internet ou o serviço de assinatura limitou o pedido. Troque de Wi-Fi para dados (ou o contrário) e espere alguns minutos. |
-| Workflow vermelho no passo "Testes" | Algum teste automático falhou. Copie o trecho do erro e me envie. |
-| Workflow vermelho no passo do Gradle | Copie o trecho do erro. As versões do Capacitor, do plugin do Node e do Android mudam com frequência; o ajuste costuma ser pequeno. |
-| Notificação não aparece | Permita as notificações do app nas configurações do Android. O serviço continua rodando mesmo sem a notificação visível, mas o ideal é permitir. |
+Primeira vez do zero? Veja o passo a passo da Fase 0 abaixo (seção 6).
 
 ---
 
-## 4. O que foi verificado e o que não foi
+## 2. Teste da Fase 1 no celular
 
-**Verificado (nos testes automáticos, no computador/integração contínua):**
-comparação de versões do Node, classificação de erros do conector (aprovado, reprovado, inconclusivo), medição de pausas do servidor, busca por módulos nativos, ajustes do `AndroidManifest.xml` e do `build.gradle` (sem duplicar nada, só as permissões da lista do prompt). O teste de fumaça do servidor roda no GitHub (Node 18 e 22), onde express e ws são instalados.
+Abra o app. Ele abre no **Painel**, com três abas: **Jogo**, **Simulador** e **Diagnóstico** (a mesma da Fase 0).
+
+1. Aba **Jogo** → toque em **Iniciar jogo**. A situação passa a "Rodando", fase "abertura" (5 s) e depois "disputa".
+2. Aba **Simulador** → toque em **Criar multidão (200)** e depois em **Ligar live falsa** (120 eventos por minuto).
+3. Volte à aba **Jogo**: placar, bandeira, apoiadores e "Últimas ações" mexem sozinhos.
+4. Toque em **Entrar no Modo Live**. O jogo ocupa a tela inteira, sem menus. Confira a faixa amarela **MODO TESTE** e a nota legal embaixo.
+5. Assista a **3 rodadas seguidas** (cada uma tem cerca de 2 min: abertura, disputa, reta final, resultado). As rodadas se repetem sozinhas.
+6. Aperte **Voltar** do Android: deve aparecer "Sair do Modo Live?". Escolha "Continuar no jogo". (O gesto escondido de saída é **tocar e segurar 2 s com dois dedos**.)
+7. Saia do Modo Live e, na aba **Jogo**, toque em **Encerrar live** → confirme. Aparece o relatório e as rodadas param.
+8. Teste manual do que o motor deve respeitar (aba Simulador):
+   - **Sequência de presente**: digite um usuário (ex.: `teste1`), escolha *Rosa* e toque em **Testar sequência 1→2→3→5→5**. A rodada deve ganhar pontos de **5 unidades** (15 pontos, sem somar os valores parciais).
+   - **Palavras**: *Comentar LULA* e *Comentar FLÁVIO* entram na corda de cada lado; o mesmo usuário comentando de novo em menos de 1,5 s é ignorado.
+9. Opcional: **Teste de carga (60 s)** e olhe, na aba Jogo, "Atraso do motor", "Memória" e "Quadros por segundo do jogo" (este só aparece com a tela do jogo aberta, ou seja, em outra aba/aparelho; no Modo Live o painel não está visível).
+
+### Critério de aceite da Fase 1
+
+- `npm test` passa (inclui simetria entre os lados e a sequência de presentes);
+- as rodadas se repetem sozinhas até **Encerrar live**;
+- o APK só é gerado se os testes passarem.
+
+---
+
+## 3. O que foi verificado e o que não foi
+
+**Verificado no computador (testes automáticos, 116 testes, Node 18 e 22 no GitHub):**
+motor do jogo (fases e durações, posição da bandeira, nocaute, empate e morte súbita, Torcida Zebra, Barra da Virada, reta final e teto
+do multiplicador), **simetria** (rodar o mesmo roteiro com os lados trocados dá o mesmo resultado espelhado), **sequência de presentes**,
+anti-spam, palavras (acentos, letras repetidas, emojis), validação da configuração, simulador, ciclo do jogo e relatório, vocabulário
+proibido na interface, e o servidor de verdade (HTTP + WebSocket). A tela do jogo e o painel foram abertos num Chromium de teste, com o
+motor real, em duas proporções de tela. O código Java novo (Modo Live) compila contra definições simplificadas das classes do Android.
 
 **Não verificado — confirmar no seu aparelho:**
 
-- instalação do APK e abertura do app;
-- se o Node embutido inicia e o servidor responde;
-- se o conector carrega no Node 18 do app e conecta a um @ real;
-- serviço em primeiro plano ativo, notificação, estado após 10 min em segundo plano;
-- versão real do Android System WebView e do Android no seu aparelho;
-- que o Gradle monta o APK com as versões atuais (o primeiro build pode pedir um ajuste).
+- Modo Live em tela cheia (barras escondidas, tela sempre acesa, área do recorte/"notch" preenchida);
+- botão Voltar pedindo confirmação e o gesto de dois dedos por 2 s;
+- fluidez do jogo (quadros por segundo) e consumo de bateria numa live longa;
+- como a tela do jogo aparece **transmitida** pelo TikTok (cortes e faixas pretas) — o guia `?calibrar=1` existe, mas a calibração é sua;
+- teste de carga rodando no próprio celular;
+- o Gradle e o APK com as novas peças (primeiro build da Fase 1 pode pedir um ajuste).
 
 Nada disso foi marcado como testado. O código foi escrito sem acesso a um celular físico.
 
 ---
 
-## 5. Decisões tomadas
+## 4. Decisões tomadas
 
-**Casca Android: Capacitor 8 + plugin `@capawesome/capacitor-nodejs`.**
-É o caminho de preferência do prompt. A documentação do plugin (consultada em 14/10/2026) diz que ele roda **Node 18.20.4**, a versão mais nova disponível no Node.js for Mobile Apps, é compatível com Capacitor 8 e tem build com páginas de 16 KB (exigência de aparelhos novos). O plugin mais antigo (`hampoelz/capacitor-nodejs`) roda Node 18.17 e as notas de versão que li citam o Capacitor 5. Capacitor 8 exige Node 22 e Java 21 no build, e `minSdk` 24 (Android 7.0). O mínimo real exigido pelo Node embutido: **confirmar no seu aparelho**.
+**Conectores.** Mantidos só `conector-2-0` (`tiktok-live-connector@2.0.1`, principal) e `conector-2-1` (`2.1.0`, reserva): os dois foram **aprovados com eventos reais** no seu
+aparelho. O `1.2.3` foi removido (endereço de assinatura antigo, erro 403) e a linha `2.2+` descartada (exige Node 20). A chave do Euler Stream continua só no aparelho.
 
-**Achado importante: o conector novo provavelmente não roda no Node 18.**
-A versão atual do `tiktok-live-connector` (2.5.0, ramo de desenvolvimento no GitHub) declara `engines.node >= 20.0.0` e usa a biblioteca `got` 15. O Node embutido é 18.20.4. Pelo prompt, o plano B (a) é usar uma versão anterior do conector. Por isso a Fase 0 instala **dois candidatos** e testa os dois:
+**Corda.** Posição P de 0 (base do Lula) a 100 (base do Flávio). A força de cada lado decai com meia-vida de 10 s; o alvo é
+`50 + 50 × (F_flávio − F_lula) / (F_flávio + F_lula + piso)` (piso 15, evita que 2 ou 3 pessoas decidam sozinhas) e a bandeira caminha até o alvo
+com suavização e no máximo 8 unidades por segundo. Nocaute: P ≤ 8 ou ≥ 92 por 2 s. Empate: P entre 49 e 51 no fim do tempo → morte súbita de 10 s com pontos em dobro.
+Só **Lula** e **Flávio** existem no código como lados; nada trata um deles de forma especial (o teste de simetria garante isso).
 
-- `conector-2-0` = `tiktok-live-connector@2.0.1` e `conector-2-1` = `2.1.0` (API `TikTokLiveConnection`, assinatura pelo Euler Stream, sem as dependências que exigem Node 20);
-- `conector-antigo` = `tiktok-live-connector@1.2.3` (API `WebcastPushConnection`; no teste da Fase 0 o endereço antigo de assinatura respondeu 403, com e sem chave);
-- a linha `2.2+` foi descartada: exige Node 20 (a 2.5.0 falhou com "Invalid regular expression flags" no Node 18).
+**Pontuação.** Comentário 1, curtida 0,1, seguir 15 (uma vez por pessoa), compartilhar 20 (no máximo 1 a cada 5 min), assinante 50 (desligado por padrão);
+presentes por tabela de efeitos (Fase 1 aplica só os **pontos** do efeito; os efeitos visuais e de duração entram na Fase 3). A abertura (5 s) **não pontua**.
+Multiplicador da fase (reta final ×2, morte súbita ×2) e teto total ×6.
 
-O diagnóstico diz qual funciona de verdade. Se **nenhum** funcionar, seguimos pelos planos (b), (c) e (d) do prompt.
+**Presente.** O lado vem da tabela de presentes (Rosa = Lula, Rosa branca = Flávio, etc.); presente fora da tabela vai para o lado **atual da pessoa**; sem lado, alimenta a Barra da Virada.
+**Sequência:** o jogo conta só as unidades novas (1→2→3→5→5 = 5 unidades), nunca soma os valores parciais.
 
-**Outras decisões simples:**
+**Anti-spam.** Mínimo de 1,5 s entre ações da mesma pessoa; no máximo 60 pontos por minuto por comentários e 20 por curtidas; comentário igual repetido em menos de 5 s é ignorado
+(a janela se renova a cada tentativa repetida, então spam contínuo não conta); comentário com palavras dos dois lados é ignorado; troca de lado no máximo a cada 20 s.
+Acima de 200 eventos por segundo, as curtidas da mesma pessoa são juntadas em um evento só.
 
-- O projeto Android **não vem pronto no .zip**: o GitHub o gera na hora (`npx cap add android`) e o script `scripts/preparar-android.js` aplica serviço, ponte nativa, rede e assinatura. Assim o .zip fica pequeno (35 arquivos) e não depende de arquivos gerados que eu não consigo testar aqui.
-- **Sem `package-lock.json`**: não consegui gerar offline. O workflow usa `npm install` (e não `npm ci`) e devolve o arquivo `nodejs-package-lock.gerado.json` junto com o APK, para fixarmos as versões depois.
-- **Descoberta da porta**: a página de abertura procura o servidor nas portas 3000 a 3010 (endereço `/api/ping`). Mais simples que depender da mensagem do plugin; o servidor escuta só em `127.0.0.1`.
-- **Serviço em primeiro plano do tipo `specialUse`**: no Android 15, os tipos `dataSync` e `mediaProcessing` têm limite de tempo; `specialUse` não tem, e serve para lives de mais de 2 horas (**confirmar na sua versão do Android**). Neste momento o serviço roda sempre que o app está aberto; na Fase 1 passa a seguir o estado da live.
-- **Permissões**: só internet, estado da rede, serviço em primeiro plano (comum e `specialUse`), notificações e manter o aparelho acordado. A tela de ajuste de bateria é aberta pelo ajuste geral do Android, sem permissão extra.
-- **Persistência**: pasta de dados do app, fornecida pelo plugin (`app.datadir()`); o diagnóstico mostra o caminho e prova que dá para gravar.
-- **Tráfego sem criptografia** liberado só para `127.0.0.1` e `localhost` (arquivo `network_security_config.xml`).
-- **Testes** no Node 18 e no 22 (o prompt pede 20 ou mais novo; usei 18 também porque é o Node que roda dentro do app).
-- Versões das ações do GitHub (`checkout@v4`, `setup-node@v4`, `setup-java@v4`, `upload-artifact@v4`): **confirmar** se há versão mais nova recomendada.
+**Torcida Zebra / Barra da Virada.** Se um time fica mais de 5 s com a bandeira a mais de 30 unidades do centro, o outro ganha +20% nos pontos até a bandeira voltar a menos de 10.
+A Barra da Virada enche com curtidas de quem ainda não tem lado (meta 300) e, cheia, dá um empurrão de +40 ao time que está perdendo.
 
----
+**Configuração.** Padrões em `config/game.json` e `config/gifts.json`. O app valida tudo: valor inválido volta ao padrão e aparece como aviso na aba Jogo (nunca derruba o app).
+Os valores editáveis no painel entram na Fase 2.
 
-## 6. Chave de assinatura (leia)
+**Tela do jogo (overlay).** Nesta fase usa **Canvas 2D** simples (tela lógica 1080×1920, escalada, zona segura do TikTok respeitada), sem biblioteca. O PixiJS pedido no prompt
+entra com os efeitos da Fase 3, onde faz diferença. Apoiadores aparecem com **iniciais** (sem fotos). O overlay **nunca mostra texto livre de comentário**: só frases geradas pelo jogo.
 
-O arquivo `android-extras/puxa-brasil.keystore` assina todas as versões do app, para o Android aceitar atualizar por cima sem apagar dados. A senha está escrita em `android-extras/puxa-signing.gradle` (uso pessoal, fora da Play Store).
+**Modo Live.** O painel abre `/overlay?live=1` na mesma WebView; o app esconde as barras do sistema, mantém a tela acesa e preenche sob o recorte. O botão Voltar pede confirmação
+(janela do Android); o gesto escondido é dois dedos por 2 s. Os botões da notificação (Pausar/Retomar/Encerrar) ficam para a próxima fase.
 
-- Mantenha o repositório **privado**. Quem tiver a chave pode criar um app que o Android aceite como atualização do seu.
-- **Faça uma cópia da chave** e guarde fora do GitHub. Quem perder a chave não consegue mais atualizar o app por cima: só desinstalando e instalando de novo, com perda dos dados.
+**Teste e segurança.** Eventos do Simulador carregam a origem "simulador" e ligam a faixa **MODO TESTE**. O Simulador usa usuários fictícios (nunca fotos reais).
+A nota legal ("Jogo de entretenimento. Não é pesquisa eleitoral nem propaganda de campanha.") é fixa e sempre visível; fora dela, a interface não usa as palavras proibidas (há teste automático).
 
----
-
-## 7. Avisos
-
-- O conector usa uma biblioteca **não oficial**: pode parar de funcionar sem aviso e não tem garantia do TikTok. A assinatura das requisições é feita por um serviço de terceiros (Euler Stream), com limite grátis.
-- Nunca informe senha, `sessionid` ou cookies do TikTok. Para ler uma live pública isso não é necessário e coloca sua conta em risco. O app não pede nada disso.
-- O APK é instalado fora da Play Store: o Android mostra avisos de "fonte desconhecida" e a atualização depende da chave guardada.
-- Leia as Diretrizes da Comunidade e as regras de LIVE do TikTok vigentes, e confira as regras e os requisitos da conta para transmitir a tela do celular ou usar o modo de jogo na sua versão do app (**confirmar na sua versão**).
-- O tema do jogo é político e a live acontece em período eleitoral: confira com um profissional as regras vigentes, especialmente sobre propaganda e conteúdo gerado por IA.
+**Outras (da Fase 0, mantidas).** Capacitor 8 + `@capawesome/capacitor-nodejs` (Node 18.20.4 embutido); projeto Android gerado no GitHub; sem `package-lock.json` (o workflow devolve
+`nodejs-package-lock.gerado.json`); a página de abertura acha o servidor nas portas 3000–3010; serviço em primeiro plano `specialUse`; tráfego sem criptografia só para 127.0.0.1;
+testes no Node 18 e 22.
 
 ---
 
-## 8. Para quem desenvolve
+## 5. Relatório da live
+
+**Encerrar live** salva um arquivo `AAAA-MMDD_HHMM.json` em `relatorios/` (dentro da pasta de dados do app) e mostra o resumo na aba Jogo: rodadas, placar da live, moedas, pessoas, mais ativos.
+
+---
+
+## 6. Gerar o APK pela primeira vez (resumo da Fase 0)
+
+1. Repositório **privado** no GitHub (o projeto leva a chave de assinatura).
+2. Envie todas as pastas e arquivos, inclusive a pasta oculta `.github`.
+3. **Actions → Gerar APK → Run workflow**. Na primeira vez leva de 10 a 20 minutos.
+4. Baixe **puxa-brasil-apk** em *Artifacts*, extraia o `.zip` e instale o `.apk` (permitir "fontes desconhecidas" só para o app que você usou — **confirmar no seu aparelho**).
+
+### Erros comuns
+
+| O que aparece | O que fazer |
+| --- | --- |
+| Workflow vermelho no passo "Testes" | Algum teste falhou: copie o trecho do erro e me envie. O APK não é gerado enquanto isso. |
+| Workflow vermelho no Gradle | Copie o trecho do erro. As versões do Capacitor/Android mudam com frequência; o ajuste costuma ser pequeno. |
+| "Conflito de assinatura" ao instalar | A versão instalada foi assinada com outra chave: desinstale a antiga (os dados somem) e instale esta. |
+| Tela de abertura diz "o servidor do app não respondeu" | Feche o app (deslize para fora) e abra de novo; se repetir, me mande a mensagem. |
+| Teste do conector "INCONCLUSIVO" (aba Diagnóstico) | Sem internet ou serviço de assinatura limitado; confira a chave do Euler Stream e tente de novo. |
+
+---
+
+## 7. Chave de assinatura (leia)
+
+`android-extras/puxa-brasil.keystore` assina todas as versões do app (a senha está em `android-extras/puxa-signing.gradle`, uso pessoal, fora da Play Store).
+Mantenha o repositório **privado** e **guarde uma cópia da chave** fora do GitHub: sem ela não dá para atualizar o app por cima.
+
+---
+
+## 8. Avisos
+
+- O conector do TikTok é **não oficial**: pode parar de funcionar sem aviso. A assinatura das requisições é feita por um serviço de terceiros (Euler Stream), com limite grátis.
+  **Nunca cole a chave dele em conversas, no GitHub ou em arquivos do projeto**; só no campo do app (aba Diagnóstico).
+- Nunca informe senha, `sessionid` ou cookies do TikTok. O app não pede nada disso.
+- Leia as regras de LIVE e as Diretrizes da Comunidade do TikTok vigentes, e confira os requisitos para transmitir a tela do celular na sua versão do app (**confirmar na sua versão**).
+- O tema do jogo é político e a live acontece em período eleitoral: confira com um profissional as regras vigentes, em especial sobre propaganda e conteúdo gerado por IA.
+
+---
+
+## 9. Para quem desenvolve
 
 ```
 npm install --prefix .deps --no-audit express@^4 ws@^8 && ln -s .deps/node_modules node_modules   # só express e ws
-npm test        # testes (node --test); o do servidor é pulado se express/ws faltarem
-npm run dev     # servidor no computador: http://127.0.0.1:3000/painel
+npm test        # node --test (o teste do servidor é pulado se express/ws faltarem)
+npm run dev     # servidor no computador: http://127.0.0.1:3000/painel  (tela do jogo: /overlay)
 ```
 
-Estrutura da Fase 0:
-
 ```
-.github/workflows/build-apk.yml   gera o APK (testes → Capacitor → Gradle)
-capacitor.config.json             app, plugin do Node, navegação só para 127.0.0.1
-android-extras/                   serviço em primeiro plano, ponte nativa, rede, chave fixa
-nodejs-project/                   package.json e main.js do Node embutido
-web-bootstrap/                    página de abertura (acha a porta do servidor)
-scripts/                          preparar-build.js, preparar-android.js, lib/
-src/server/                       servidor, teste do conector, batimento, log
-src/web/                          painel (diagnóstico) e overlay vazio
+.github/workflows/build-apk.yml   testes (Node 18 e 22) → Capacitor → Gradle → APK
+config/                           game.json (regras) e gifts.json (tabela de presentes)
+android-extras/                   serviço em primeiro plano, ponte nativa (Modo Live), rede, chave fixa
+src/engine/                       motor do jogo, palavras, anti-spam, sequência, efeitos (puros, testáveis)
+src/server/                       servidor, jogo (ciclo de 100 ms), fontes de eventos (simulador), conector de teste
+src/shared/                       formato de evento, mensagens do WebSocket, textos fixos
+src/web/painel, src/web/overlay   painel (Jogo, Simulador, Diagnóstico) e tela do jogo
 test/                             testes automatizados
 ```

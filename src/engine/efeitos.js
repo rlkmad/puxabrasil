@@ -2,6 +2,8 @@
 // Na Fase 1 só os PONTOS de cada efeito são aplicados (na hora). Os efeitos visuais e de duração
 // (Trio Elétrico, Âncora, Gelo, Megafone, Maré, Dominação, Final Épica, Combo, Rojão em etapas) entram na Fase 3.
 
+import { semAcento } from './texto-seguro.js';
+
 export const EFEITOS = Object.freeze([
   { id: 'apoiador-vip', nome: 'Apoiador VIP', faixa: [1, 1], pontosPorMoeda: 3 },
   { id: 'combo-de-torcida', nome: 'Combo de Torcida', faixa: [1, 1], pontosPorMoeda: 2 },
@@ -30,7 +32,7 @@ export function efeitoPorValor(valorUnitario) {
 }
 
 export function normalizarNomeDePresente(nome) {
-  return String(nome ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return semAcento(nome).replace(/\s+/g, ' ').trim();
 }
 
 /** Presentes padrão (pares de mesmo valor): só os das faixas de 1 e 5 moedas, que vêm do painel de referência. */

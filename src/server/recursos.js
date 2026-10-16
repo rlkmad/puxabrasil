@@ -42,6 +42,7 @@ export function recursosDoNode() {
     TextDecoderStream: typeof TextDecoderStream !== 'undefined',
     [POLYFILLS_APLICADOS.includes('crypto') ? 'crypto.randomUUID (via polyfill)' : 'crypto.randomUUID']: typeof globalThis.crypto?.randomUUID === 'function',
     'import() dinâmico': true,
+    'ICU/Intl (acentos e \\p{} em regex)': (() => { try { return new RegExp('\\p{L}', 'u').test('a') && 'a'.normalize('NFD') === 'a'; } catch (_) { return false; } })(),
     'node:test (só testes)': undefined,
   };
   delete f['node:test (só testes)'];

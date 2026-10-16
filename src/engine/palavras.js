@@ -3,13 +3,7 @@
 // ("lulaaaa" vira "lula") e comparando palavra inteira. Palavras-chave em emoji (🔴, 🟢, 🟡) são
 // procuradas no texto original, antes de os emojis serem descartados.
 
-const EMOJI = /\p{Extended_Pictographic}/u;
-const EMOJI_TODOS = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}️‍]/gu;
-
-/** Tira acentos e deixa em minúsculas. */
-function semAcento(t) {
-  return String(t ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-}
+import { semAcento, EMOJI, EMOJI_TODOS } from './texto-seguro.js';
 
 /** Reduz sequências de letras repetidas a uma só ("lulaaa" -> "lula"). Números não são mexidos. */
 function reduzirRepetidas(palavra) {

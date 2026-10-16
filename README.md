@@ -118,6 +118,8 @@ entra com os efeitos da Fase 3, onde faz diferença. Apoiadores aparecem com **i
 **Teste e segurança.** Eventos do Simulador carregam a origem "simulador" e ligam a faixa **MODO TESTE**. O Simulador usa usuários fictícios (nunca fotos reais).
 A nota legal ("Jogo de entretenimento. Não é pesquisa eleitoral nem propaganda de campanha.") é fixa e sempre visível; fora dela, a interface não usa as palavras proibidas (há teste automático).
 
+**Node embutido sem ICU (ajuste 1.1).** A versão inicial da Fase 1 usava `\p{...}` em expressões regulares e `normalize()` para tirar acentos; o Node embutido do app pode não ter ICU e o servidor deixou de iniciar ("O servidor do app não respondeu"). Agora o código usa uma tabela própria de acentos e faixas de emoji (`src/engine/texto-seguro.js`), e um teste automático barra `\p{}`, `normalize()` e `Intl` no código do servidor. O diagnóstico também mostra se o aparelho tem ICU. Se o servidor falhar de novo, `main.js` sobe um servidor de emergência que mostra o erro exato.
+
 **Outras (da Fase 0, mantidas).** Capacitor 8 + `@capawesome/capacitor-nodejs` (Node 18.20.4 embutido); projeto Android gerado no GitHub; sem `package-lock.json` (o workflow devolve
 `nodejs-package-lock.gerado.json`); a página de abertura acha o servidor nas portas 3000–3010; serviço em primeiro plano `specialUse`; tráfego sem criptografia só para 127.0.0.1;
 testes no Node 18 e 22.
@@ -144,7 +146,7 @@ testes no Node 18 e 22.
 | Workflow vermelho no passo "Testes" | Algum teste falhou: copie o trecho do erro e me envie. O APK não é gerado enquanto isso. |
 | Workflow vermelho no Gradle | Copie o trecho do erro. As versões do Capacitor/Android mudam com frequência; o ajuste costuma ser pequeno. |
 | "Conflito de assinatura" ao instalar | A versão instalada foi assinada com outra chave: desinstale a antiga (os dados somem) e instale esta. |
-| Tela de abertura diz "o servidor do app não respondeu" | Feche o app (deslize para fora) e abra de novo; se repetir, me mande a mensagem. |
+| Tela de abertura diz "o servidor do app não respondeu" | Feche o app (deslize para fora) e abra de novo. Se o servidor tiver falhado ao iniciar, o app agora abre uma **tela de erro** com o texto exato e o botão **Copiar erro**: me envie esse texto. |
 | Teste do conector "INCONCLUSIVO" (aba Diagnóstico) | Sem internet ou serviço de assinatura limitado; confira a chave do Euler Stream e tente de novo. |
 
 ---
